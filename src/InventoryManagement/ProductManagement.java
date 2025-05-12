@@ -5,8 +5,14 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import InventoryManagement.sql.DatabaseConnection;
 
 public class ProductManagement {
+    private DefaultTableModel tableModel;
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             // Proceed to the Product Management page
@@ -110,15 +116,7 @@ public class ProductManagement {
 
         // Update the table layout to match OrderManagementSystem
         String[] columns = {"", "Product ID", "Product Name", "Category", "Sales Channel", "Products in Stock", "Action"};
-        Object[][] data = {
-            {Boolean.FALSE, "#7676", "Inverter", "cat1", "Store name", 80, "Click to Edit/Update"},
-            {Boolean.FALSE, "#7677", "Battery", "cat2", "Store name", 80, "Click to Edit/Update"},
-            {Boolean.FALSE, "#7678", "Generator", "cat2", "Store name", 80, "Click to Edit/Update"},
-            {Boolean.FALSE, "#7679", "Charger", "cat3", "Store name", 80, "Click to Edit/Update"},
-            {Boolean.FALSE, "#7680", "Power", "cat4", "Store name", 80, "Click to Edit/Update"}
-        };
-
-        DefaultTableModel model = new DefaultTableModel(data, columns) {
+        tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public Class<?> getColumnClass(int column) {
                 if (column == 0) {
@@ -133,7 +131,7 @@ public class ProductManagement {
             }
         };
 
-        JTable table = new JTable(model);
+        JTable table = new JTable(tableModel);
         table.setRowHeight(40);
         table.setShowGrid(false);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -168,7 +166,7 @@ public class ProductManagement {
             @Override
             public Object getCellEditorValue() {
                 int rowIndex = table.getSelectedRow();
-                showEditProductDialog(rowIndex, model);
+                showEditProductDialog(rowIndex, tableModel);
                 return super.getCellEditorValue();
             }
         });
@@ -176,7 +174,33 @@ public class ProductManagement {
         JScrollPane scrollPane = new JScrollPane(table);
         panel.add(scrollPane, BorderLayout.CENTER);
 
+        // Fetch items from the database
+        fetchItemsFromDatabase();
+
         return panel;
+    }
+
+    private void fetchItemsFromDatabase() {
+        try (Connection connection = DatabaseConnection.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM items")) {
+
+            while (resultSet.next()) {
+                Object[] row = {
+                    Boolean.FALSE, // Checkbox column
+                    resultSet.getString("item_id"),
+                    resultSet.getString("name"),
+                    resultSet.getString("category"),
+                    resultSet.getString("sales_channel"),
+                    resultSet.getInt("quantity"),
+                    "Click to Edit/Update" // Action column
+                };
+                tableModel.addRow(row);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Error fetching items from the database: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void showEditProductDialog(int rowIndex, DefaultTableModel model) {
@@ -228,23 +252,52 @@ public class ProductManagement {
                 if (stock < 0) {
                     throw new NumberFormatException();
                 }
+
+                // Debugging log for SQL query
+                String updateSQL = String.format(
+                    "UPDATE items SET name = '%s', category = '%s', sales_channel = '%s', quantity = %d WHERE item_id = '%s'",
+                    productNameField.getText().trim(),
+                    categoryField.getText().trim(),
+                    salesChannelField.getText().trim(),
+                    stock,
+                    productIdField.getText().trim()
+                );
+                System.out.println("Executing SQL: " + updateSQL);
+
+                // Update the database
+                try (Connection connection = DatabaseConnection.getConnection();
+                     Statement statement = connection.createStatement()) {
+
+                    int rowsAffected = statement.executeUpdate(updateSQL);
+                    System.out.println("Rows affected: " + rowsAffected);
+
+                    if (rowsAffected > 0) {
+                        // Update the table model
+                        model.setValueAt(productNameField.getText().trim(), rowIndex, 2);
+                        model.setValueAt(categoryField.getText().trim(), rowIndex, 3);
+                        model.setValueAt(salesChannelField.getText().trim(), rowIndex, 4);
+                        model.setValueAt(stock, rowIndex, 5);
+
+                        editProductDialog.dispose();
+                        JOptionPane.showMessageDialog(null,
+                                "Product updated successfully!",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(editProductDialog,
+                                "No rows were updated. Please check the item ID.",
+                                "Update Failed", JOptionPane.WARNING_MESSAGE);
+                    }
+                }
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(editProductDialog,
                         "Stock must be a non-negative number!",
                         "Validation Error", JOptionPane.ERROR_MESSAGE);
-                return;
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(editProductDialog,
+                        "Error updating product in the database: " + ex.getMessage(),
+                        "Database Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
             }
-
-            model.setValueAt(productIdField.getText().trim(), rowIndex, 1);
-            model.setValueAt(productNameField.getText().trim(), rowIndex, 2);
-            model.setValueAt(categoryField.getText().trim(), rowIndex, 3);
-            model.setValueAt(salesChannelField.getText().trim(), rowIndex, 4);
-            model.setValueAt(stockField.getText().trim(), rowIndex, 5);
-
-            editProductDialog.dispose();
-            JOptionPane.showMessageDialog(null,
-                    "Product updated successfully!",
-                    "Success", JOptionPane.INFORMATION_MESSAGE);
         });
 
         buttonPanel.add(cancelButton);
@@ -290,7 +343,6 @@ public class ProductManagement {
 
         @Override
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            label = (value == null) ? "" : value.toString();
             button.setText(label);
             return button;
         }

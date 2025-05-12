@@ -1,6 +1,8 @@
 package InventoryManagement;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 
 public class GenerateReport {
@@ -40,9 +42,42 @@ public class GenerateReport {
             frame.getContentPane().add(navBar, BorderLayout.WEST);
 
             JPanel mainContent = new JPanel(new BorderLayout());
-            frame.getContentPane().add(mainContent, BorderLayout.CENTER);
+            mainContent.setBackground(Color.WHITE);
+            mainContent.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-            mainContent.add(new JLabel("Generate Report Page", SwingConstants.CENTER), BorderLayout.CENTER);
+            JLabel lblReports = new JLabel("Generate Report", SwingConstants.LEFT);
+            lblReports.setFont(new Font("Arial", Font.BOLD, 18));
+            mainContent.add(lblReports, BorderLayout.NORTH);
+
+            String[] columnNames = {"Select", "Order ID", "Date", "Requested By", "Sales Channel", "Item", "Items"};
+            DefaultTableModel tableModel = new DefaultTableModel(null, columnNames) {
+                @Override
+                public Class<?> getColumnClass(int column) {
+                    if (column == 0) return Boolean.class;
+                    return String.class;
+                }
+
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return column == 0;
+                }
+            };
+
+            JTable ordersTable = new JTable(tableModel);
+            ordersTable.setRowHeight(40);
+            ordersTable.setShowGrid(false);
+            ordersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            ordersTable.setBackground(Color.WHITE);
+
+            JTableHeader header = ordersTable.getTableHeader();
+            header.setBackground(Color.WHITE);
+            header.setFont(new Font("Arial", Font.BOLD, 12));
+
+            JScrollPane scrollPane = new JScrollPane(ordersTable);
+            scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+            mainContent.add(scrollPane, BorderLayout.CENTER);
+
+            frame.getContentPane().add(mainContent, BorderLayout.CENTER);
 
             // Add action listeners
             dashboardButton.addActionListener(e -> {

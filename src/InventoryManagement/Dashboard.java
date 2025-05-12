@@ -60,8 +60,20 @@ public class Dashboard {
             headerRight.setBackground(Color.WHITE);
             headerRight.add(searchBar);
             headerRight.add(notificationButton);
-
+            JPanel headerLeft = new JPanel();
+            headerLeft.setBackground(Color.WHITE);
+            headerLeft.setLayout(new BorderLayout());
+            // Ensure the title label is added correctly to the headerLeft panel
+            headerLeft.removeAll(); // Clear any existing components
+            JLabel titleLabel = new JLabel("Inventory Management System", SwingConstants.LEFT);
+            titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+            headerLeft.add(titleLabel, BorderLayout.CENTER); // Add the title label to the center of headerLeft
+            headerLeft.revalidate();
+            headerLeft.repaint();
+            headerRight.add(searchBar);
+            headerRight.add(notificationButton);
             header.add(headerRight, BorderLayout.EAST);
+            header.add(headerLeft, BorderLayout.WEST);
 
             // Main content
             JPanel mainContent = new JPanel(new BorderLayout());
@@ -140,7 +152,9 @@ public class Dashboard {
         JPanel mainContent = new JPanel(new BorderLayout());
         mainContent.setBackground(new Color(240, 240, 240));
         mainContent.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
+        JLabel titleLabel = new JLabel("Dashboard", SwingConstants.LEFT);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        mainContent.add(titleLabel, BorderLayout.NORTH);
         // Update the table layout to match OrderManagementSystem
         String[] columnNames = {"", "Order ID", "Date", "Requested by", "Sales Channel", "Item", "Items", "Status"};
         DefaultTableModel tableModel = new DefaultTableModel(null, columnNames) {
@@ -182,11 +196,12 @@ public class Dashboard {
         // Fetch data from the SQLite database
         try (Connection connection = DatabaseConnection.getConnection();
              Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("SELECT * FROM dashboard_items")) {
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM orderItems")) {
 
+            // Ensure the first column contains Boolean values
             while (resultSet.next()) {
                 Object[] row = {
-                    Boolean.FALSE,
+                    Boolean.FALSE, // Checkbox column must be Boolean
                     resultSet.getString("order_id"),
                     resultSet.getString("date"),
                     resultSet.getString("requested_by"),

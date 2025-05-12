@@ -4,14 +4,14 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class LoginFrame extends JFrame {
+public class LoginFrame1 extends JFrame {
     private JTextField userField;
     private JPasswordField passwordField;
     private int attempts = 0;
     private final int MAX_ATTEMPTS = 3;
     private static final long serialVersionUID = 1L;
 
-    public LoginFrame() {
+    public LoginFrame1() {
         setTitle("Inventory Management Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(900, 600);
@@ -89,7 +89,7 @@ public class LoginFrame extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new LoginFrame().setVisible(true);
+            new LoginFrame1().setVisible(true);
         });
     }
 }

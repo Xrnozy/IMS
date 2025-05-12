@@ -18,11 +18,13 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -40,6 +42,8 @@ import javax.swing.SwingConstants;
 import javax.swing.ListSelectionModel;
 import javax.swing.JOptionPane;
 import javax.swing.RowFilter;
+
+import InventoryManagement.sql.DatabaseConnection;
 
 public class OrderManagementSystem extends JFrame {
 
@@ -119,12 +123,12 @@ public class OrderManagementSystem extends JFrame {
         contentPane.add(datePickerIcon);
         
         comboBoxSales = new JComboBox<>();
-        comboBoxSales.setModel(new DefaultComboBoxModel<>(new String[] {"All Sales", "KangKong Chips"}));
+        comboBoxSales.setModel(new DefaultComboBoxModel<>(fetchSalesChannelsFromDatabase()));
         comboBoxSales.setBounds(400, 100, 150, 30);
         contentPane.add(comboBoxSales);
         
         comboBoxStatus = new JComboBox<>();
-        comboBoxStatus.setModel(new DefaultComboBoxModel<>(new String[] {"All Status", "Completed", "Pending"}));
+        comboBoxStatus.setModel(new DefaultComboBoxModel<>(new String[] {"Pending", "Delivered", "Cancelled", "Shipped", "Processing", "Completed"}));
         comboBoxStatus.setBounds(560, 100, 100, 30);
         contentPane.add(comboBoxStatus);
         
@@ -186,7 +190,7 @@ public class OrderManagementSystem extends JFrame {
             }
         };
         
-        addSampleData();
+        fetchOrdersFromDatabase();
         
         ordersTable = new JTable(tableModel);
         ordersTable.setRowHeight(40);
@@ -260,28 +264,54 @@ public class OrderManagementSystem extends JFrame {
                 }
             }
         });
+
+        populateComboBoxSales(); // Dynamically populate comboBoxSales during initialization
     }
     	
-    private void addSampleData() {
-        String today = new SimpleDateFormat("MM/dd/yyyy").format(new Date());
+    private void fetchOrdersFromDatabase() {
+        try (Connection connection = DatabaseConnection.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM orderItems")) {
 
-        Object[] row1 = {Boolean.FALSE, "#0001", today, "Josh Mojica", "KangKong Chips", "Cheese", "3", "Completed"};
-        Object[] row2 = {Boolean.FALSE, "#0002", today, "Josh Mojica", "KangKong Chips", "Sour and Cream", "3", "Pending"};
-        Object[] row3 = {Boolean.FALSE, "#0003", today, "Josh Mojica", "KangKong Chips", "Barbeque", "3", "Completed"};
-        Object[] row4 = {Boolean.FALSE, "#0004", today, "Josh Mojica", "KangKong Chips", "Chocolate", "3", "Pending"};
-        Object[] row5 = {Boolean.FALSE, "#0005", today, "Josh Mojica", "KangKong Chips", "Spicy Cheese", "3", "Cancelled"};
+            while (resultSet.next()) {
+                Object[] row = {
+                    Boolean.FALSE,
+                    resultSet.getString("order_id"),
+                    resultSet.getString("date"),
+                    resultSet.getString("requested_by"),
+                    resultSet.getString("sales_channel"),
+                    resultSet.getString("item"),
+                    resultSet.getInt("items"),
+                    resultSet.getString("status")
+                };
+                tableModel.addRow(row);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error fetching data from the database: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    private String[] fetchSalesChannelsFromDatabase() {
+        List<String> salesChannels = new ArrayList<>();
+        salesChannels.add("All Sales"); // Default option
+        try (Connection connection = DatabaseConnection.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT *  FROM orderItems")) {
 
-        originalData.add(row1);
-        originalData.add(row2);
-        originalData.add(row3);
-        originalData.add(row4);
-        originalData.add(row5);
-
-        tableModel.addRow(row1);
-        tableModel.addRow(row2);
-        tableModel.addRow(row3);
-        tableModel.addRow(row4);
-        tableModel.addRow(row5);
+            while (resultSet.next()) {
+                salesChannels.add(resultSet.getString("sales_channel"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error fetching sales channels from the database: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+        return salesChannels.toArray(new String[0]);
+    }
+    
+    private void populateComboBoxSales() {
+        String[] salesChannels = fetchSalesChannelsFromDatabase();
+        comboBoxSales.setModel(new DefaultComboBoxModel<>(salesChannels));
     }
     
     private void applyFilters() {
@@ -379,7 +409,7 @@ public class OrderManagementSystem extends JFrame {
         JTextField itemField = new JTextField(20);
         JTextField itemCountField = new JTextField(5);
 
-        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Pending", "Completed", "Cancelled"});
+        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Pending", "Delivered", "Cancelled", "Shipped", "Processing", "Completed"});
 
         JPanel orderIdPanel = createLabeledField("Order ID:", orderIdField);
         JPanel requestedByPanel = createLabeledField("Requested by:", requestedByField);
@@ -450,6 +480,26 @@ public class OrderManagementSystem extends JFrame {
                 statusCombo.getSelectedItem()
             };
 
+            // Insert the new order into the database
+            try (Connection connection = DatabaseConnection.getConnection();
+                 Statement statement = connection.createStatement()) {
+
+                String insertSQL = String.format(
+                    "INSERT INTO orderItems (order_id, date, requested_by, sales_channel, item, items, status) " +
+                    "VALUES ('%s', '%s', '%s', '%s', '%s', %d, '%s')",
+                    newOrderId, today, requestedByField.getText().trim(),
+                    salesChannelField.getText().trim(), itemField.getText().trim(),
+                    itemCount, statusCombo.getSelectedItem().toString()
+                );
+
+                statement.executeUpdate(insertSQL);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(addOrderDialog,
+                        "Error saving the order to the database: " + ex.getMessage(),
+                        "Database Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
             originalData.add(newRow);
             tableModel.addRow(newRow);
 
@@ -499,19 +549,28 @@ public class OrderManagementSystem extends JFrame {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
             label.setHorizontalAlignment(SwingConstants.CENTER);
 
-            if ("Completed".equals(value)) {
-                label.setBackground(new Color(78, 188, 137));
-                label.setForeground(Color.WHITE);
-            } else if ("Pending".equals(value)) {
-                label.setBackground(new Color(198, 224, 118));
-                label.setForeground(Color.BLACK);
-            } else if ("Cancelled".equals(value)) {
-                label.setBackground(new Color(255, 99, 71)); // Tomato color for cancelled
-                label.setForeground(Color.WHITE);
-            } else {
-                label.setBackground(Color.WHITE);
-                label.setForeground(Color.BLACK);
-            }
+           if ("Completed".equals(value)) {
+                    label.setBackground(new Color(78, 188, 137));
+                    label.setForeground(Color.WHITE);
+                } else if ("Pending".equals(value)) {
+                    label.setBackground(new Color(198, 224, 118));
+                    label.setForeground(Color.BLACK);
+                } else if ("Cancelled".equals(value)) {
+                    label.setBackground(new Color(255, 99, 71)); // Tomato color for cancelled
+                    label.setForeground(Color.WHITE);
+                } else if ("Shipped".equals(value)) {
+                    label.setBackground(new Color(135, 206, 250)); // Light blue for shipped
+                    label.setForeground(Color.BLACK);
+                } else if ("Delivered".equals(value)) {
+                    label.setBackground(new Color(144, 238, 144)); // Light green for delivered
+                    label.setForeground(Color.BLACK);
+                } else if ("Processing".equals(value)) {
+                    label.setBackground(new Color(255, 215, 0)); // Gold for processing
+                    label.setForeground(Color.BLACK);
+                } else {
+                    label.setBackground(Color.WHITE);
+                    label.setForeground(Color.BLACK);
+                }
 
             label.setOpaque(true);
             return label;
