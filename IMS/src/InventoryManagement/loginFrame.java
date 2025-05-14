@@ -1,17 +1,18 @@
 package InventoryManagement;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class LoginFrame extends JFrame {
+public class loginFrame extends JFrame {
     private JTextField userField;
     private JPasswordField passwordField;
     private int attempts = 0;
     private final int MAX_ATTEMPTS = 3;
     private static final long serialVersionUID = 1L;
 
-    public LoginFrame() {
+    public loginFrame() {
         setTitle("Inventory Management Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(900, 600);
@@ -50,7 +51,7 @@ public class LoginFrame extends JFrame {
 
         add(loginForm, BorderLayout.WEST);
 
-        //Image
+        // Image
         JPanel rightPanel = new JPanel();
         rightPanel.setBackground(Color.LIGHT_GRAY);
         rightPanel.setLayout(new BorderLayout());
@@ -66,21 +67,22 @@ public class LoginFrame extends JFrame {
                 String user = userField.getText();
                 String pass = new String(passwordField.getPassword());
 
-                // Ensure the DashboardPanel is properly displayed after successful login
-                if (user.equals("admin") && pass.equals("password123")) {
+                // Ensure the Dashboard is properly displayed after successful login
+                if (user.equals("1") && pass.equals("1")) {
                     JOptionPane.showMessageDialog(null, "Login successful!");
-                    getContentPane().removeAll();
-                    DashboardPanel dashboardPanel = new DashboardPanel();
-                    getContentPane().add(dashboardPanel, BorderLayout.CENTER);
-                    revalidate();
-                    repaint();
+                    dispose(); // Close the login frame
+
+                    Dashboard dashboard = new Dashboard();
+                    dashboard.setVisible(true); // Ensure the Dashboard frame is visible
+
                 } else {
                     attempts++;
                     if (attempts >= MAX_ATTEMPTS) {
                         JOptionPane.showMessageDialog(null, "Login Attempts exceeded. Closing Program.");
                         System.exit(0);
                     } else {
-                        JOptionPane.showMessageDialog(null, "Invalid credentials. Attempts left: " + (MAX_ATTEMPTS - attempts));
+                        JOptionPane.showMessageDialog(null,
+                                "Invalid credentials. Attempts left: " + (MAX_ATTEMPTS - attempts));
                     }
                 }
             }
@@ -89,7 +91,7 @@ public class LoginFrame extends JFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            new LoginFrame().setVisible(true);
+            new loginFrame().setVisible(true);
         });
     }
 }

@@ -1,8 +1,6 @@
 {
-  "java.project.sourcePaths": ["src"],
-  "java.project.outputPath": "bin",
   "java.project.referencedLibraries": [
     "lib/**/*.jar",
-    "src/InventoryManagement/sql/mysql-connector-j-9.3.0/mysql-connector-j-9.3.0.jar"
+    "IMS/src/InventoryManagement/sql/mysql-connector-j-9.3.0/mysql-connector-j-9.3.0.jar"
   ]
 }
