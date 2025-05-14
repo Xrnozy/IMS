@@ -1,12 +1,13 @@
 
 package InventoryManagement;
+
 import javax.swing.*;
 import java.awt.*;
 
 public class DashboardPanel extends JPanel {
-	
-	private static final long serialVersionUID = 1L;
-	
+
+    private static final long serialVersionUID = 1L;
+
     public DashboardPanel() {
         setLayout(new BorderLayout());
 
@@ -16,8 +17,8 @@ public class DashboardPanel extends JPanel {
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
 
         String[] menuItems = {
-            "Dashboard", "Product Management", "Inventory Overview",
-            "Order Overview", "Generate Report"
+                "Dashboard", "Product Management", "Inventory Overview",
+                "Order Overview", "Generate Report"
         };
         for (String item : menuItems) {
             JLabel label = new JLabel(item);
@@ -58,9 +59,8 @@ public class DashboardPanel extends JPanel {
         card.setPreferredSize(new Dimension(180, 80));
         card.setBackground(Color.WHITE);
         card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.LIGHT_GRAY),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
         card.setLayout(new BorderLayout());
 
         JLabel lblTitle = new JLabel(title);
@@ -79,25 +79,24 @@ public class DashboardPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.LIGHT_GRAY),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
 
         JLabel title = new JLabel("Stock Alert");
         title.setFont(new Font("SansSerif", Font.BOLD, 16));
         panel.add(title, BorderLayout.NORTH);
 
-        String[] columns = {"Product ID", "Date", "Quantity", "Alert amt.", "Status"};
+        String[] columns = { "Product ID", "Date", "Quantity", "Alert amt.", "Status" };
         String[][] data = {
-            {"order ID", "Date", "Quantity", "Low on Stocks", "Ordering"},
-            {"order ID", "Date", "Quantity", "Low on Stocks", "Order Shipped"},
-            {"order ID", "Date", "Quantity", "Low on Stocks", "Order Shipped"},
+                { "order ID", "Date", "Quantity", "Low on Stocks", "Ordering" },
+                { "order ID", "Date", "Quantity", "Low on Stocks", "Order Shipped" },
+                { "order ID", "Date", "Quantity", "Low on Stocks", "Order Shipped" },
         };
-        
+
         JTable table = new JTable(data, columns) {
-        	
-        	private static final long serialVersionUID = 1L;
-        	
+
+            private static final long serialVersionUID = 1L;
+
             public Component prepareRenderer(javax.swing.table.TableCellRenderer renderer, int row, int column) {
                 Component comp = super.prepareRenderer(renderer, row, column);
                 if (column == 3) {
@@ -118,19 +117,18 @@ public class DashboardPanel extends JPanel {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(Color.LIGHT_GRAY),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
-        ));
+                BorderFactory.createLineBorder(Color.LIGHT_GRAY),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)));
 
         JLabel title = new JLabel("Recent Added Item");
         title.setFont(new Font("SansSerif", Font.BOLD, 16));
         panel.add(title, BorderLayout.NORTH);
 
-        String[] columns = {"order ID", "Quantity", "Category"};
+        String[] columns = { "order ID", "Quantity", "Category" };
         String[][] data = {
-            {"order ID", "Quantity", "Category"},
-            {"order ID", "Quantity", "Category"},
-            {"order ID", "Quantity", "Category"},
+                { "order ID", "Quantity", "Category" },
+                { "order ID", "Quantity", "Category" },
+                { "order ID", "Quantity", "Category" },
         };
 
         JTable table = new JTable(data, columns);
