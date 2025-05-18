@@ -42,6 +42,7 @@ import javax.swing.SwingConstants;
 import javax.swing.ListSelectionModel;
 import javax.swing.JOptionPane;
 import javax.swing.RowFilter;
+import javax.swing.Timer;
 
 import InventoryManagement.sql.DatabaseConnection;
 
@@ -53,13 +54,12 @@ public class OrderManagementSystem extends JFrame {
     private JTable ordersTable;
     private DefaultTableModel tableModel;
     private TableRowSorter<DefaultTableModel> sorter;
-    private JButton btnExportToExcel;
-    private JButton btnImportOrders;
     private JButton btnNewOrders;
     private JButton btnClearFilter;
     private JComboBox<String> comboBoxSales;
-    private JComboBox<String> comboBoxStatus;
+    private JComboBox<String> comboBoxStatus; // Added JComboBox for Status
     private List<Object[]> originalData = new ArrayList<>();
+    private Timer refreshTimer;
 
     public static void main(String[] args) {
         EventQueue.invokeLater(new Runnable() {
@@ -82,105 +82,90 @@ public class OrderManagementSystem extends JFrame {
         contentPane.setBackground(Color.WHITE);
         contentPane.setBorder(new EmptyBorder(15, 15, 15, 15));
         setContentPane(contentPane);
-        contentPane.setLayout(null);
-        
+        contentPane.setLayout(new BorderLayout(0, 10)); // Use BorderLayout for responsive resizing
+
         JLabel lblOrders = new JLabel("Order Management");
         lblOrders.setFont(new Font("Arial", Font.BOLD, 18));
-        lblOrders.setBounds(15, 15, 200, 25);
-        contentPane.add(lblOrders);
-        
-        JPanel searchPanel = new JPanel(new BorderLayout());
-        searchPanel.setBounds(15, 100, 325, 30);
-        searchPanel.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        
-        searchField = new JTextField();
-        searchField.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 5));
+        lblOrders.setBorder(new EmptyBorder(0, 0, 10, 0));
+
+        // Create a panel for the top controls (search, filters, buttons)
+        JPanel topPanel = new JPanel(new BorderLayout());
+        topPanel.setOpaque(false);
+        topPanel.add(lblOrders, BorderLayout.NORTH);
+
+        // Filter/search panel (use FlowLayout for responsiveness)
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        searchPanel.setOpaque(false);
+        searchPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        searchPanel.setPreferredSize(new Dimension(0, 40));
+
+        searchField = new JTextField(15);
+        searchField.setPreferredSize(new Dimension(200, 30));
         searchField.setToolTipText("Search order ID");
-        
+        searchField.setBackground(new Color(255, 255, 255));
+        searchField.setBorder(BorderFactory.createLineBorder(new Color(110, 110, 110)));
+
         JButton searchButton = new JButton("🔍");
         searchButton.setBorder(null);
         searchButton.setBackground(Color.WHITE);
         searchButton.setFocusPainted(false);
-        
-        searchPanel.add(searchField, BorderLayout.CENTER);
-        searchPanel.add(searchButton, BorderLayout.EAST);
-        contentPane.add(searchPanel);
-        
-        this.addComponentListener(new ComponentAdapter() {
-            @Override
-            public void componentResized(ComponentEvent e) {
-                int width = getWidth();
-                int newSearchWidth = Math.min(400, Math.max(250, width - 600));
-                searchPanel.setBounds(15, 100, newSearchWidth, 30);
-                searchPanel.revalidate();
-            }
-        });
 
-        JLabel datePickerIcon = new JLabel("📅");
-        datePickerIcon.setHorizontalAlignment(SwingConstants.CENTER);
-        datePickerIcon.setBounds(360, 100, 30, 30);
-        datePickerIcon.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        contentPane.add(datePickerIcon);
         
+
         comboBoxSales = new JComboBox<>();
         comboBoxSales.setModel(new DefaultComboBoxModel<>(fetchSalesChannelsFromDatabase()));
-        comboBoxSales.setBounds(400, 100, 150, 30);
-        contentPane.add(comboBoxSales);
-        
+        comboBoxSales.setPreferredSize(new Dimension(150, 30));
+
         comboBoxStatus = new JComboBox<>();
-        comboBoxStatus.setModel(new DefaultComboBoxModel<>(new String[] {"Pending", "Delivered", "Cancelled", "Shipped", "Processing", "Completed"}));
-        comboBoxStatus.setBounds(560, 100, 100, 30);
-        contentPane.add(comboBoxStatus);
-        
+        comboBoxStatus.setModel(new DefaultComboBoxModel<>(fetchStatusesFromDatabase()));
+        comboBoxStatus.setPreferredSize(new Dimension(100, 30));
+
         JButton btnFilter = new JButton("Filter");
-        btnFilter.setBounds(670, 100, 80, 30);
         btnFilter.setBackground(new Color(110, 0, 220));
         btnFilter.setForeground(Color.WHITE);
         btnFilter.setBorder(null);
-        contentPane.add(btnFilter);
-        
+        btnFilter.setPreferredSize(new Dimension(80, 30));
+
         btnClearFilter = new JButton("Clear");
-        btnClearFilter.setBounds(760, 100, 80, 30);
         btnClearFilter.setBackground(Color.WHITE);
         btnClearFilter.setBorder(BorderFactory.createLineBorder(new Color(110, 0, 220)));
         btnClearFilter.setForeground(new Color(110, 0, 220));
-        contentPane.add(btnClearFilter);
-        
-        btnExportToExcel = new JButton("Export to excel");
-        btnExportToExcel.setBounds(462, 38, 130, 30);
-        btnExportToExcel.setBackground(Color.WHITE);
-        btnExportToExcel.setBorder(BorderFactory.createLineBorder(new Color(110, 0, 220)));
-        btnExportToExcel.setForeground(new Color(110, 0, 220));
-        contentPane.add(btnExportToExcel);
-        
-        btnImportOrders = new JButton("Import Orders");
-        btnImportOrders.setBounds(600, 38, 140, 30);
-        btnImportOrders.setBackground(Color.WHITE);
-        btnImportOrders.setBorder(BorderFactory.createLineBorder(new Color(110, 0, 220)));
-        btnImportOrders.setForeground(new Color(110, 0, 220));
-        contentPane.add(btnImportOrders);
-        
+        btnClearFilter.setPreferredSize(new Dimension(80, 30));
+
         btnNewOrders = new JButton("+ New Orders");
-        btnNewOrders.setBounds(748, 38, 122, 30);
         btnNewOrders.setBackground(new Color(110, 0, 220));
         btnNewOrders.setForeground(Color.WHITE);
         btnNewOrders.setBorder(null);
-        contentPane.add(btnNewOrders);
-        
+        btnNewOrders.setPreferredSize(new Dimension(122, 30));
         btnNewOrders.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 showAddOrderDialog();
             }
         });
-        
-        String[] columnNames = {"", "order ID", "Date", "Requested by", "Sales channel", "Item", "Items", "Status"};
+
+        // Add controls to searchPanel
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        searchPanel.add(comboBoxSales);
+        searchPanel.add(comboBoxStatus);
+        searchPanel.add(btnFilter);
+        searchPanel.add(btnClearFilter);
+        searchPanel.add(btnNewOrders);
+
+        topPanel.add(searchPanel, BorderLayout.CENTER);
+        contentPane.add(topPanel, BorderLayout.NORTH);
+
+        String[] columnNames = {"", "Order ID", "Date", "Sales channel", "Item ID", "Name", "Stocks(in boxes)", "Price", "Category", "Status"};
         tableModel = new DefaultTableModel(null, columnNames) {
             private static final long serialVersionUID = 1L;
             @Override
             public Class<?> getColumnClass(int column) {
                 if (column == 0) {
                     return Boolean.class;
+                }
+                if (column == 7) {
+                    return Double.class;
                 }
                 return String.class;
             }
@@ -189,73 +174,63 @@ public class OrderManagementSystem extends JFrame {
                 return column == 0;
             }
         };
-        
+
         fetchOrdersFromDatabase();
-        
+
         ordersTable = new JTable(tableModel);
         ordersTable.setRowHeight(40);
         ordersTable.setShowGrid(false);
         ordersTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         ordersTable.setBackground(Color.WHITE);
-        
+        ordersTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS); // Make columns auto-resize
+
         sorter = new TableRowSorter<>(tableModel);
         ordersTable.setRowSorter(sorter);
-        
+
         JTableHeader header = ordersTable.getTableHeader();
         header.setBackground(Color.WHITE);
         header.setFont(new Font("Arial", Font.BOLD, 12));
-        
+
         ordersTable.getColumnModel().getColumn(0).setPreferredWidth(30);
         ordersTable.getColumnModel().getColumn(1).setPreferredWidth(80);
         ordersTable.getColumnModel().getColumn(2).setPreferredWidth(100);
-        ordersTable.getColumnModel().getColumn(3).setPreferredWidth(150);
-        ordersTable.getColumnModel().getColumn(4).setPreferredWidth(120);
-        ordersTable.getColumnModel().getColumn(5).setPreferredWidth(80);
+        ordersTable.getColumnModel().getColumn(3).setPreferredWidth(120);
+        ordersTable.getColumnModel().getColumn(4).setPreferredWidth(80);
+        ordersTable.getColumnModel().getColumn(5).setPreferredWidth(100);
         ordersTable.getColumnModel().getColumn(6).setPreferredWidth(50);
-        ordersTable.getColumnModel().getColumn(7).setPreferredWidth(100);
-        
-        ordersTable.getColumnModel().getColumn(7).setCellRenderer(new StatusRenderer());
-        
+        ordersTable.getColumnModel().getColumn(7).setPreferredWidth(80);
+        // Set left alignment for Price column
+        DefaultTableCellRenderer leftRenderer = new DefaultTableCellRenderer();
+        leftRenderer.setHorizontalAlignment(SwingConstants.LEFT);
+        ordersTable.getColumnModel().getColumn(7).setCellRenderer(leftRenderer);
+        ordersTable.getColumnModel().getColumn(8).setPreferredWidth(100);
+        ordersTable.getColumnModel().getColumn(9).setPreferredWidth(100);
+
+        ordersTable.getColumnModel().getColumn(9).setCellRenderer(new StatusRenderer());
+
         JScrollPane scrollPane = new JScrollPane(ordersTable);
-        scrollPane.setBounds(15, 145, 855, 400);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
-        contentPane.add(scrollPane);
-        
-        btnExportToExcel.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(OrderManagementSystem.this, 
-                        "Export to Excel functionality would be implemented here.", 
-                        "Export", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-        
-        btnImportOrders.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(OrderManagementSystem.this, 
-                        "Import Orders functionality would be implemented here.", 
-                        "Import", JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-        
+        contentPane.add(scrollPane, BorderLayout.CENTER);
+
         btnFilter.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 applyFilters();
             }
         });
-        
+
         btnClearFilter.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 clearFilters();
             }
         });
-        
+
         searchButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 searchOrders();
             }
         });
-        
+
         searchField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -266,22 +241,30 @@ public class OrderManagementSystem extends JFrame {
         });
 
         populateComboBoxSales(); // Dynamically populate comboBoxSales during initialization
+        populateComboBoxStatus(); // Dynamically populate comboBoxStatus during initialization
+
+        // Add real-time refresh timer
+        refreshTimer = new Timer(5000, e -> fetchOrdersFromDatabase()); // 5 seconds
+        refreshTimer.setCoalesce(true);
+        refreshTimer.start();
     }
-    	
+
     private void fetchOrdersFromDatabase() {
+        tableModel.setRowCount(0); // Clear table before adding new rows
         try (Connection connection = DatabaseConnection.getConnection();
              Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT * FROM orderItems")) {
-
             while (resultSet.next()) {
                 Object[] row = {
                     Boolean.FALSE,
                     resultSet.getString("order_id"),
                     resultSet.getString("date"),
-                    resultSet.getString("requested_by"),
                     resultSet.getString("sales_channel"),
-                    resultSet.getString("item"),
-                    resultSet.getInt("items"),
+                    resultSet.getString("item_id"),
+                    resultSet.getString("name"),
+                    resultSet.getInt("quantity"),
+                    resultSet.getDouble("price"),
+                    resultSet.getString("category"),
                     resultSet.getString("status")
                 };
                 tableModel.addRow(row);
@@ -291,16 +274,18 @@ public class OrderManagementSystem extends JFrame {
             JOptionPane.showMessageDialog(this, "Error fetching data from the database: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
-    
+
     private String[] fetchSalesChannelsFromDatabase() {
         List<String> salesChannels = new ArrayList<>();
         salesChannels.add("All Sales"); // Default option
         try (Connection connection = DatabaseConnection.getConnection();
              Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("SELECT *  FROM orderItems")) {
-
+             ResultSet resultSet = statement.executeQuery("SELECT DISTINCT sales_channel FROM orderItems")) {
             while (resultSet.next()) {
-                salesChannels.add(resultSet.getString("sales_channel"));
+                String channel = resultSet.getString("sales_channel");
+                if (channel != null && !channel.trim().isEmpty() && !salesChannels.contains(channel)) {
+                    salesChannels.add(channel);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -308,28 +293,51 @@ public class OrderManagementSystem extends JFrame {
         }
         return salesChannels.toArray(new String[0]);
     }
-    
+
+    // Added method to fetch distinct statuses from the database
+    private String[] fetchStatusesFromDatabase() {
+        List<String> statuses = new ArrayList<>();
+        statuses.add("All Status"); // Default option
+        try (Connection connection = DatabaseConnection.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT DISTINCT status FROM orderItems")) {
+            while (resultSet.next()) {
+                String status = resultSet.getString("status");
+                if (status != null && !status.trim().isEmpty() && !statuses.contains(status)) {
+                    statuses.add(status);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error fetching statuses from the database: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+        return statuses.toArray(new String[0]);
+    }
+
     private void populateComboBoxSales() {
         String[] salesChannels = fetchSalesChannelsFromDatabase();
         comboBoxSales.setModel(new DefaultComboBoxModel<>(salesChannels));
     }
-    
+
+    // Added method to populate the status combobox
+    private void populateComboBoxStatus() {
+        String[] statuses = fetchStatusesFromDatabase();
+        comboBoxStatus.setModel(new DefaultComboBoxModel<>(statuses));
+    }
+
     private void applyFilters() {
-        String salesFilter = comboBoxSales.getSelectedItem().toString();
-        String statusFilter = comboBoxStatus.getSelectedItem().toString();
-        
+        String salesFilter = comboBoxSales.getSelectedItem() != null ? comboBoxSales.getSelectedItem().toString() : "All Sales";
+        String statusFilter = comboBoxStatus.getSelectedItem() != null ? comboBoxStatus.getSelectedItem().toString() : "All Status"; // Get selected status
         List<RowFilter<Object, Object>> filters = new ArrayList<>();
-        
         if (!"All Sales".equals(salesFilter)) {
-            RowFilter<Object, Object> salesRowFilter = RowFilter.regexFilter(salesFilter, 4);
+            RowFilter<Object, Object> salesRowFilter = RowFilter.regexFilter("^" + salesFilter + "$", 3);
             filters.add(salesRowFilter);
         }
-        
+        // Add status filter if not "All Status"
         if (!"All Status".equals(statusFilter)) {
-            RowFilter<Object, Object> statusRowFilter = RowFilter.regexFilter("^" + statusFilter + "$", 7);
+            RowFilter<Object, Object> statusRowFilter = RowFilter.regexFilter("^" + statusFilter + "$", 9);
             filters.add(statusRowFilter);
         }
-        
         if (filters.isEmpty()) {
             sorter.setRowFilter(null);
         } else if (filters.size() == 1) {
@@ -337,39 +345,37 @@ public class OrderManagementSystem extends JFrame {
         } else {
             sorter.setRowFilter(RowFilter.andFilter(filters));
         }
-        
         int visibleRows = ordersTable.getRowCount();
         if (visibleRows == 0) {
-            JOptionPane.showMessageDialog(this, 
-                    "No orders match the selected filters.", 
+            JOptionPane.showMessageDialog(this,
+                    "No orders match the selected filters.",
                     "Filter Results", JOptionPane.INFORMATION_MESSAGE);
         } else {
             String message = "Showing " + visibleRows + " order" + (visibleRows > 1 ? "s" : "");
             if (!"All Sales".equals(salesFilter)) message += " from " + salesFilter;
-            if (!"All Status".equals(statusFilter)) message += " with status: " + statusFilter;
-            
+            if (!"All Status".equals(statusFilter)) message += " with status: " + statusFilter; // Include status in message
             JOptionPane.showMessageDialog(this, message, "Filter Applied", JOptionPane.INFORMATION_MESSAGE);
         }
     }
-    
+
     private void clearFilters() {
         comboBoxSales.setSelectedItem("All Sales");
-        comboBoxStatus.setSelectedItem("All Status");
+        comboBoxStatus.setSelectedItem("All Status"); // Clear status filter
         sorter.setRowFilter(null);
         JOptionPane.showMessageDialog(this, "Filters cleared.", "Filters", JOptionPane.INFORMATION_MESSAGE);
     }
-    
+
     private void searchOrders() {
         String searchText = searchField.getText().trim().toLowerCase();
         if (searchText.isEmpty()) {
-            JOptionPane.showMessageDialog(this, 
-                    "Please enter an order ID to search", 
+            JOptionPane.showMessageDialog(this,
+                    "Please enter an order ID to search",
                     "Search", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
-        
+
         sorter.setRowFilter(null);
-        
+
         boolean found = false;
         for (int i = 0; i < tableModel.getRowCount(); i++) {
             String orderId = tableModel.getValueAt(i, 1).toString().toLowerCase();
@@ -378,7 +384,7 @@ public class OrderManagementSystem extends JFrame {
                 if (ordersTable.getRowSorter() != null) {
                     modelRow = ordersTable.convertRowIndexToView(i);
                 }
-                
+
                 if (modelRow >= 0) {
                     ordersTable.setRowSelectionInterval(modelRow, modelRow);
                     ordersTable.scrollRectToVisible(ordersTable.getCellRect(modelRow, 0, true));
@@ -387,43 +393,42 @@ public class OrderManagementSystem extends JFrame {
                 }
             }
         }
-        
+
         if (!found) {
-            JOptionPane.showMessageDialog(this, 
-                    "No orders found with ID: " + searchText, 
+            JOptionPane.showMessageDialog(this,
+                    "No orders found with ID: " + searchText,
                     "Search Result", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 
-    
+
     private void showAddOrderDialog() {
         JDialog addOrderDialog = new JDialog(this, "Add New Order", true);
-        addOrderDialog.setSize(450, 400);
+        addOrderDialog.setSize(450, 500);
         addOrderDialog.setLocationRelativeTo(this);
         addOrderDialog.setLayout(new GridLayout(0, 1, 10, 10));
         addOrderDialog.getRootPane().setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JTextField orderIdField = new JTextField(10);
-        JTextField requestedByField = new JTextField(20);
         JTextField salesChannelField = new JTextField(20);
-        JTextField itemField = new JTextField(20);
-        JTextField itemCountField = new JTextField(5);
+        JTextField itemIdField = new JTextField(10);
+        JTextField nameField = new JTextField(20);
+        JTextField quantityField = new JTextField(5);
+        JTextField priceField = new JTextField(10);
+        JTextField categoryField = new JTextField(20); // New category field
 
-        JComboBox<String> statusCombo = new JComboBox<>(new String[]{"Pending", "Delivered", "Cancelled", "Shipped", "Processing", "Completed"});
-
-        JPanel orderIdPanel = createLabeledField("Order ID:", orderIdField);
-        JPanel requestedByPanel = createLabeledField("Requested by:", requestedByField);
         JPanel salesChannelPanel = createLabeledField("Sales channel:", salesChannelField);
-        JPanel itemPanel = createLabeledField("Item:", itemField);
-        JPanel itemCountPanel = createLabeledField("Items count:", itemCountField);
-        JPanel statusPanel = createLabeledField("Status:", statusCombo);
+        JPanel itemIdPanel = createLabeledField("Item ID:", itemIdField);
+        JPanel namePanel = createLabeledField("Name:", nameField);
+        JPanel quantityPanel = createLabeledField("Quantity:", quantityField);
+        JPanel pricePanel = createLabeledField("Price:", priceField);
+        JPanel categoryPanel = createLabeledField("Category:", categoryField); // New panel
 
-        addOrderDialog.add(orderIdPanel);
-        addOrderDialog.add(requestedByPanel);
         addOrderDialog.add(salesChannelPanel);
-        addOrderDialog.add(itemPanel);
-        addOrderDialog.add(itemCountPanel);
-        addOrderDialog.add(statusPanel);
+        addOrderDialog.add(itemIdPanel);
+        addOrderDialog.add(namePanel);
+        addOrderDialog.add(quantityPanel);
+        addOrderDialog.add(pricePanel);
+        addOrderDialog.add(categoryPanel); // Add to dialog
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton cancelButton = new JButton("Cancel");
@@ -432,11 +437,13 @@ public class OrderManagementSystem extends JFrame {
         cancelButton.addActionListener(e -> addOrderDialog.dispose());
 
         saveButton.addActionListener(e -> {
-            if (orderIdField.getText().trim().isEmpty() ||
-                requestedByField.getText().trim().isEmpty() ||
+            if (
                 salesChannelField.getText().trim().isEmpty() ||
-                itemField.getText().trim().isEmpty() ||
-                itemCountField.getText().trim().isEmpty()) {
+                itemIdField.getText().trim().isEmpty() ||
+                nameField.getText().trim().isEmpty() ||
+                quantityField.getText().trim().isEmpty() ||
+                priceField.getText().trim().isEmpty() ||
+                categoryField.getText().trim().isEmpty()) {
 
                 JOptionPane.showMessageDialog(addOrderDialog,
                         "All fields are required!",
@@ -444,40 +451,43 @@ public class OrderManagementSystem extends JFrame {
                 return;
             }
 
-            int itemCount;
+            int quantity;
+            double price;
             try {
-                itemCount = Integer.parseInt(itemCountField.getText().trim());
-                if (itemCount <= 0) {
+                quantity = Integer.parseInt(quantityField.getText().trim());
+                if (quantity <= 0) {
                     throw new NumberFormatException();
                 }
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(addOrderDialog,
-                        "Items count must be a positive number!",
+                        "Quantity must be a positive number!",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            try {
+                price = Double.parseDouble(priceField.getText().trim());
+                if (price < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(addOrderDialog,
+                        "Price must be a non-negative number!",
                         "Validation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            String newOrderId = orderIdField.getText().trim();
-            for (int i = 0; i < tableModel.getRowCount(); i++) {
-                String existingId = tableModel.getValueAt(i, 1).toString();
-                if (existingId.equalsIgnoreCase(newOrderId)) {
-                    JOptionPane.showMessageDialog(addOrderDialog,
-                            "Order ID already exists!",
-                            "Duplicate Error", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-            }
-
-            String today = new SimpleDateFormat("MM/dd/yyyy").format(new Date());
+            String today = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
             Object[] newRow = {
                 Boolean.FALSE,
-                newOrderId,
+                null, // order_id will be auto-generated
                 today,
-                requestedByField.getText().trim(),
                 salesChannelField.getText().trim(),
-                itemField.getText().trim(),
-                String.valueOf(itemCount),
-                statusCombo.getSelectedItem()
+                itemIdField.getText().trim(),
+                nameField.getText().trim(),
+                quantity,
+                price,
+                categoryField.getText().trim(), // Add category to row
+                "Pending" // Default status
             };
 
             // Insert the new order into the database
@@ -485,11 +495,13 @@ public class OrderManagementSystem extends JFrame {
                  Statement statement = connection.createStatement()) {
 
                 String insertSQL = String.format(
-                    "INSERT INTO orderItems (order_id, date, requested_by, sales_channel, item, items, status) " +
-                    "VALUES ('%s', '%s', '%s', '%s', '%s', %d, '%s')",
-                    newOrderId, today, requestedByField.getText().trim(),
-                    salesChannelField.getText().trim(), itemField.getText().trim(),
-                    itemCount, statusCombo.getSelectedItem().toString()
+                    "INSERT INTO orderItems (date, requested_by, sales_channel, item_id, name, quantity, price, category, status) " +
+                    "VALUES ('%s','Manager Kim', '%s', %s, '%s', %d, %f, '%s', 'Pending')",
+                    today,
+                    salesChannelField.getText().trim(),
+                    itemIdField.getText().trim(),
+                    nameField.getText().trim(), quantity, price,
+                    categoryField.getText().trim()
                 );
 
                 statement.executeUpdate(insertSQL);
@@ -524,7 +536,7 @@ public class OrderManagementSystem extends JFrame {
 
         addOrderDialog.setVisible(true);
     }
-    
+
     private JPanel createLabeledField(String labelText, JTextField field) {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel label = new JLabel(labelText);
@@ -533,7 +545,7 @@ public class OrderManagementSystem extends JFrame {
         panel.add(field);
         return panel;
     }
-    
+
     private JPanel createLabeledField(String labelText, JComboBox<String> combo) {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel label = new JLabel(labelText);
@@ -542,7 +554,7 @@ public class OrderManagementSystem extends JFrame {
         panel.add(combo);
         return panel;
     }
-    
+
     class StatusRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -583,5 +595,143 @@ public class OrderManagementSystem extends JFrame {
      */
     public JPanel getMainPanel() {
         return contentPane;
+    }
+
+    @Override
+    public void dispose() {
+        if (refreshTimer != null) {
+            refreshTimer.stop();
+        }
+        super.dispose();
+    }
+    /**
+     * Returns a JPanel for creating a new order, with fields pre-filled from the given product details.
+     * @param productId The product/item ID
+     * @param productName The product name
+     * @param category The product category
+     * @param shop The sales channel/shop
+     * @return JPanel with autofilled order form
+     */
+    public JPanel getContentPanelWithAutofill(String productId, String productName, String category, String shop) {
+        // Create a dialog just like showAddOrderDialog, but autofilled
+        JDialog autofillDialog = new JDialog(this, "Add New Order (Autofilled)", true);
+        autofillDialog.setSize(450, 500);
+        autofillDialog.setLocationRelativeTo(this);
+        autofillDialog.setLayout(new GridLayout(0, 1, 10, 10));
+        autofillDialog.getRootPane().setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JTextField salesChannelField = new JTextField(shop, 20);
+        JTextField itemIdField = new JTextField(productId, 10);
+        JTextField nameField = new JTextField(productName, 20);
+        JTextField quantityField = new JTextField("", 5); // Not autofilled
+        JTextField priceField = new JTextField("", 10); // Will autofill below
+        JTextField categoryField = new JTextField(category, 20);
+
+        // Autofill price from product table if possible
+        try (Connection connection = DatabaseConnection.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT price FROM items WHERE item_id = '" + productId + "'")) {
+            if (resultSet.next()) {
+                priceField.setText(String.valueOf(resultSet.getDouble("price")));
+            }
+        } catch (Exception ex) {
+            // If price can't be autofilled, leave blank
+        }
+
+        // Make itemId, name, and category not editable
+        itemIdField.setEditable(false);
+        nameField.setEditable(false);
+        categoryField.setEditable(false);
+        priceField.setEditable(false); // Make price field not editable
+
+        JPanel salesChannelPanel = createLabeledField("Sales channel:", salesChannelField);
+        JPanel itemIdPanel = createLabeledField("Item ID:", itemIdField);
+        JPanel namePanel = createLabeledField("Name:", nameField);
+        JPanel quantityPanel = createLabeledField("Quantity:", quantityField);
+        JPanel pricePanel = createLabeledField("Price:", priceField);
+        JPanel categoryPanel = createLabeledField("Category:", categoryField);
+
+        autofillDialog.add(salesChannelPanel);
+        autofillDialog.add(itemIdPanel);
+        autofillDialog.add(namePanel);
+        autofillDialog.add(quantityPanel);
+        autofillDialog.add(pricePanel);
+        autofillDialog.add(categoryPanel);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JButton cancelButton = new JButton("Cancel");
+        JButton saveButton = new JButton("Save");
+        buttonPanel.add(cancelButton);
+        buttonPanel.add(saveButton);
+        autofillDialog.add(buttonPanel);
+
+        cancelButton.addActionListener(e -> autofillDialog.dispose());
+
+        saveButton.addActionListener(e -> {
+            if (
+                salesChannelField.getText().trim().isEmpty() ||
+                itemIdField.getText().trim().isEmpty() ||
+                nameField.getText().trim().isEmpty() ||
+                quantityField.getText().trim().isEmpty() ||
+                priceField.getText().trim().isEmpty() ||
+                categoryField.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(autofillDialog,
+                        "All fields are required!",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            int quantity;
+            double price;
+            try {
+                quantity = Integer.parseInt(quantityField.getText().trim());
+                if (quantity <= 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(autofillDialog,
+                        "Quantity must be a positive number!",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            try {
+                price = Double.parseDouble(priceField.getText().trim());
+                if (price < 0) {
+                    throw new NumberFormatException();
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(autofillDialog,
+                        "Price must be a non-negative number!",
+                        "Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            String today = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+            try (Connection connection = DatabaseConnection.getConnection();
+                 Statement statement = connection.createStatement()) {
+                String insertSQL = String.format(
+                    "INSERT INTO orderitems (date, requested_by, sales_channel, item_id, name, quantity, price, category, status) " +
+                    "VALUES ('%s','Manager Kim', '%s', '%s', '%s', %d, %f, '%s', 'Pending')",
+                    today,
+                    salesChannelField.getText().trim(),
+                    itemIdField.getText().trim(),
+                    nameField.getText().trim(),
+                    quantity,
+                    price,
+                    categoryField.getText().trim()
+                );
+                statement.executeUpdate(insertSQL);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(autofillDialog,
+                        "Error saving the order to the database: " + ex.getMessage(),
+                        "Database Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            JOptionPane.showMessageDialog(autofillDialog,
+                    "New order added successfully!",
+                    "Success", JOptionPane.INFORMATION_MESSAGE);
+            autofillDialog.dispose();
+        });
+        autofillDialog.setVisible(true);
+        // Return a dummy panel (not used, but required for compatibility)
+        return new JPanel();
     }
 }

@@ -6,7 +6,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class DatabaseConnection {
-    private static final String URL = "jdbc:mysql://localhost:3307/inventory_management";
+    private static final String URL = "jdbc:mysql://localhost:3306/inventory_management";
     private static final String USER = "root";
     private static final String PASSWORD = "";
 
@@ -19,8 +19,11 @@ public class DatabaseConnection {
                     "date TEXT, " +
                     "requested_by TEXT, " +
                     "sales_channel TEXT, " +
-                    "item TEXT, " +
-                    "items INTEGER, " +
+                    "item_id INT, " +
+                    "name TEXT, " +
+                    "quantity INTEGER, " +
+                    "price INTEGER, " +
+                    "category TEXT, " + // New column
                     "status TEXT);";
             statement.execute(createOrderItemsTableSQL);
 
@@ -31,8 +34,22 @@ public class DatabaseConnection {
                     "category TEXT, " +
                     "quantity INTEGER, " +
                     "sales_channel TEXT, " +
-                    "price INTEGER);";
+                    "price DOUBLE);";
             statement.execute(createItemsTableSQL);
+
+            // Create the completed table if it does not exist
+            String createCompletedTableSQL = "CREATE TABLE IF NOT EXISTS completed (" +
+                    "order_id INTEGER PRIMARY KEY AUTO_INCREMENT, " +
+                    "date TEXT, " +
+                    "requested_by TEXT, " +
+                    "sales_channel TEXT, " +
+                    "item_id INT, " +
+                    "name TEXT, " +
+                    "quantity INTEGER, " +
+                    "price DOUBLE, " +
+                    "category TEXT, " + // New column
+                    "completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);";
+            statement.execute(createCompletedTableSQL);
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException("Failed to initialize the database: " + e.getMessage());

@@ -1,0 +1,39 @@
+CREATE DATABASE inventory_management;
+USE inventory_management;
+
+CREATE TABLE items (
+    item_id INT(11) NOT NULL PRIMARY KEY,
+    name TEXT,
+    category TEXT,
+    quantity INT(11),
+    sales_channel TEXT,
+    price INT(11)
+);
+
+CREATE TABLE orderitems (
+    order_id INT(11),
+    date TEXT,
+    requested_by TEXT,
+    sales_channel TEXT,
+    item TEXT,
+    items INT(11),
+    status TEXT,
+    last_updated TIMESTAMP NOT NULL DEFAULT current_timestamp()
+);
+
+INSERT INTO orderitems 
+(order_id, date, requested_by, sales_channel, item_id, name, quantity, price, category, status)
+VALUES
+
+
+-- Mockup data
+(8, '2025-05-16', 'Supervisor Lee', 2, 2, 'Widget A', 5, 10.50, 'Tools', 'Approved'),
+(9, '2025-05-15', 'Clerk John', 1, 3, 'Gadget X', 2, 25.00, 'Electronics', 'Shipped'),
+(10, '2025-05-14', 'Manager Kim', 3, 4, 'Notebook', 10, 2.50, 'Stationery', 'Pending'),
+(11, '2025-05-13', 'Assistant May', 1, 5, 'Pen Pack', 15, 1.20, 'Stationery', 'Approved'),
+(12, '2025-05-12', 'Supervisor Lee', 2, 6, 'USB Cable', 20, 3.75, 'Electronics', 'Cancelled'),
+(13, '2025-05-11', 'Manager Kim', 1, 7, 'Desk Lamp', 3, 18.99, 'Furniture', 'Pending'),
+(14, '2025-05-10', 'Clerk John', 3, 8, 'Chair', 2, 45.00, 'Furniture', 'Approved'),
+(15, '2025-05-09', 'Assistant May', 1, 9, 'Monitor', 1, 120.00, 'Electronics', 'Shipped'),
+(16, '2025-05-08', 'Manager Kim', 2, 10, 'Mouse', 7, 9.99, 'Electronics', 'Pending'),
+(17, '2025-05-07', 'Supervisor Lee', 1, 11, 'Keyboard', 5, 14.99, 'Electronics', 'Approved');

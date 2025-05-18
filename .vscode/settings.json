@@ -2,5 +2,6 @@
   "java.project.referencedLibraries": [
     "lib/**/*.jar",
     "IMS/src/InventoryManagement/sql/mysql-connector-j-9.3.0/mysql-connector-j-9.3.0.jar"
-  ]
+  ],
+  "CodeGPT.apiKey": "CodeGPT Plus Beta"
 }

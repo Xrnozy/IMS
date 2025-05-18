@@ -1,0 +1,14 @@
+INSERT INTO orderitems 
+(order_id, date, requested_by, sales_channel, item_id, name, quantity, price, category, status)
+VALUES
+-- Mockup data
+(8, '2025-05-16 09:30:00', 'Supervisor Lee', 'Retail Store', 2, 'Widget A', 5, 10.50, 'Tools', 'On the Way'),
+(9, '2025-05-15 11:00:00', 'Clerk John', 'Online', 3, 'Gadget X', 2, 25.00, 'Electronics', 'Pending'),
+(10, '2025-05-14 14:15:00', 'Manager Kim', 'Wholesale', 4, 'Notebook', 10, 2.50, 'Stationery', 'Pending'),
+(11, '2025-05-13 10:45:00', 'Assistant May', 'Online', 5, 'Pen Pack', 15, 1.20, 'Stationery', 'On the Way'),
+(12, '2025-05-12 13:00:00', 'Supervisor Lee', 'Retail Store', 6, 'USB Cable', 20, 3.75, 'Electronics', 'Pending'),
+(13, '2025-05-11 15:20:00', 'Manager Kim', 'Online', 7, 'Desk Lamp', 3, 18.99, 'Furniture', 'Pending'),
+(14, '2025-05-10 08:30:00', 'Clerk John', 'Wholesale', 8, 'Chair', 2, 45.00, 'Furniture', 'On the Way'),
+(15, '2025-05-09 16:45:00', 'Assistant May', 'Online', 9, 'Monitor', 1, 120.00, 'Electronics', 'Pending'),
+(16, '2025-05-08 12:00:00', 'Manager Kim', 'Retail Store', 10, 'Mouse', 70, 9.99, 'Electronics', 'On the Way'),
+(17, '2025-05-07 17:10:00', 'Supervisor Lee', 'Online', 11, 'Keyboard', 50, 14.99, 'Electronics', 'Pending');

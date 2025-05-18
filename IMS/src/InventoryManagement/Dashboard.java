@@ -11,6 +11,47 @@ import java.sql.Statement;
 import InventoryManagement.sql.DatabaseConnection;
 
 public class Dashboard extends JFrame {
+    private Timer refreshTimer;
+    private DefaultTableModel tableModel;
+    private DefaultTableModel stockAlertTableModel;
+    private JTable dashboardTable;
+    private JTable stockAlertTable;
+
+    // Add StatusRenderer as a class member
+    class StatusRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            label.setHorizontalAlignment(SwingConstants.CENTER);
+
+            if ("Completed".equals(value)) {
+                label.setBackground(new Color(78, 188, 137));
+                label.setForeground(Color.WHITE);
+            } else if ("Pending".equals(value)) {
+                label.setBackground(new Color(198, 224, 118));
+                label.setForeground(Color.BLACK);
+            } else if ("Cancelled".equals(value)) {
+                label.setBackground(new Color(255, 99, 71)); // Tomato color for cancelled
+                label.setForeground(Color.WHITE);
+            } else if ("Shipped".equals(value)) {
+                label.setBackground(new Color(135, 206, 250)); // Light blue for shipped
+                label.setForeground(Color.BLACK);
+            } else if ("Delivered".equals(value)) {
+                label.setBackground(new Color(144, 238, 144)); // Light green for delivered
+                label.setForeground(Color.BLACK);
+            } else if ("Processing".equals(value)) {
+                label.setBackground(new Color(255, 215, 0)); // Gold for processing
+                label.setForeground(Color.BLACK);
+            } else {
+                label.setBackground(Color.WHITE);
+                label.setForeground(Color.BLACK);
+            }
+
+            label.setOpaque(true);
+            return label;
+        }
+    }
+
     public Dashboard() {
         setTitle("Inventory Management Dashboard");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -27,10 +68,10 @@ public class Dashboard extends JFrame {
         JButton inventoryOverviewButton = new JButton("Inventory Overview");
         JButton orderOverviewButton = new JButton("Order Overview");
         JButton generateReportButton = new JButton("Generate Report");
-        JButton productsOverviewButton = new JButton("Products Overview");
+        
 
         // Style buttons
-        JButton[] buttons = {dashboardButton, productManagementButton, inventoryOverviewButton, orderOverviewButton, generateReportButton, productsOverviewButton};
+        JButton[] buttons = {dashboardButton, productManagementButton, inventoryOverviewButton, orderOverviewButton, generateReportButton};
         for (JButton button : buttons) {
             button.setFocusPainted(false);
             button.setContentAreaFilled(false);
@@ -47,17 +88,11 @@ public class Dashboard extends JFrame {
         header.setBackground(Color.WHITE);
         header.setPreferredSize(new Dimension(getWidth(), 60));
 
-        JTextField searchBar = new JTextField("Search...");
-        searchBar.setPreferredSize(new Dimension(300, 30));
-        JButton notificationButton = new JButton("🔔");
-        notificationButton.setFocusPainted(false);
-        notificationButton.setContentAreaFilled(false);
-        notificationButton.setBorderPainted(false);
+    
 
         JPanel headerRight = new JPanel();
         headerRight.setBackground(Color.WHITE);
-        headerRight.add(searchBar);
-        headerRight.add(notificationButton);
+    
         JPanel headerLeft = new JPanel();
         headerLeft.setBackground(Color.WHITE);
         headerLeft.setLayout(new BorderLayout());
@@ -80,44 +115,40 @@ public class Dashboard extends JFrame {
         getContentPane().add(header, BorderLayout.NORTH);
         getContentPane().add(mainContent, BorderLayout.CENTER);
 
-        // Stock Alert section
-
         // Add action listeners to buttons to dynamically load content
         dashboardButton.addActionListener(e -> {
-            if (!(mainContent.getComponentCount() > 0 && mainContent.getComponent(0).getClass().equals(Dashboard.class))) {
-                mainContent.removeAll();
-                Dashboard dashboardInstance = new Dashboard();
-                mainContent.add(dashboardInstance.getContentPanel(), BorderLayout.CENTER);
-                mainContent.revalidate();
-                mainContent.repaint();
-            }
+            refreshTimer.start(); // Start updates when returning to dashboard
+            mainContent.removeAll();
+            mainContent.add(getContentPanel(), BorderLayout.CENTER);
+            mainContent.revalidate();
+            mainContent.repaint();
         });
-
         productManagementButton.addActionListener(e -> {
+            refreshTimer.stop(); // Stop updates when leaving dashboard
             mainContent.removeAll();
             ProductManagement productManagement = new ProductManagement();
             mainContent.add(productManagement.getContentPanel(), BorderLayout.CENTER);
             mainContent.revalidate();
             mainContent.repaint();
         });
-
         inventoryOverviewButton.addActionListener(e -> {
+            refreshTimer.stop(); // Stop updates when leaving dashboard
             mainContent.removeAll();
             InventoryOverview inventoryOverview = new InventoryOverview();
             mainContent.add(inventoryOverview.getContentPanel(), BorderLayout.CENTER);
             mainContent.revalidate();
             mainContent.repaint();
         });
-
         orderOverviewButton.addActionListener(e -> {
+            refreshTimer.stop(); // Stop updates when leaving dashboard
             mainContent.removeAll();
             OrderManagementSystem OrderManagementSystem = new OrderManagementSystem();
             mainContent.add(OrderManagementSystem.getMainPanel(), BorderLayout.CENTER);
             mainContent.revalidate();
             mainContent.repaint();
         });
-
         generateReportButton.addActionListener(e -> {
+            refreshTimer.stop(); // Stop updates when leaving dashboard
             mainContent.removeAll();
             GenerateReport generateReport = new GenerateReport();
             mainContent.add(generateReport.getContentPanel(), BorderLayout.CENTER);
@@ -125,42 +156,105 @@ public class Dashboard extends JFrame {
             mainContent.repaint();
         });
 
-        productsOverviewButton.addActionListener(e -> {
-            mainContent.removeAll();
-            ProductsOverview productsOverview = new ProductsOverview();
-            mainContent.add(productsOverview.getContentPanel(), BorderLayout.CENTER);
-            mainContent.revalidate();
-            mainContent.repaint();
+     
+        // Initialize refresh timer (checks every 10 seconds)
+        refreshTimer = new Timer(3000, e -> refreshDashboard());
+        refreshTimer.setCoalesce(true); // Combine multiple events into one
+
+        // Add a listener to start/stop timer based on panel visibility
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                refreshTimer.start();
+            }
+
+            @Override
+            public void componentHidden(java.awt.event.ComponentEvent e) {
+                refreshTimer.stop();
+            }
         });
+    }
+
+    @Override
+    public void dispose() {
+        if (refreshTimer != null) {
+            refreshTimer.stop();
+        }
+        super.dispose();
     }
 
     public JPanel getContentPanel() {
         JPanel mainContent = new JPanel(new BorderLayout());
         mainContent.setBackground(new Color(240, 240, 240));
         mainContent.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Title and top section
+        JPanel topSection = new JPanel(new BorderLayout());
+        topSection.setOpaque(false);
         JLabel titleLabel = new JLabel("Dashboard", SwingConstants.LEFT);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
-        mainContent.add(titleLabel, BorderLayout.NORTH);
-        // Update the table layout to match OrderManagementSystem
-        String[] columnNames = {"", "Order ID", "Date", "Requested by", "Sales Channel", "Item", "Items", "Status"};
-        DefaultTableModel tableModel = new DefaultTableModel(null, columnNames) {
+        topSection.add(titleLabel, BorderLayout.WEST);
+        mainContent.add(topSection, BorderLayout.NORTH);
+
+        // Create split pane for orders and stock alerts
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        splitPane.setResizeWeight(0.7); // Give more space to orders table
+
+        // Orders table panel
+        JPanel ordersPanel = new JPanel(new BorderLayout());
+        ordersPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(), "Recent Orders"));
+        
+        // Orders table setup
+        String[] columnNames = {"Order ID", "Date", "Store", "Item ID", "Name", "Stocks(in boxes)", "Price", "Category", "Status"};
+        tableModel = new DefaultTableModel(null, columnNames) {
             private static final long serialVersionUID = 1L;
 
             @Override
             public Class<?> getColumnClass(int column) {
-                if (column == 0) {
-                    return Boolean.class;
-                }
+                if (column == 6) return Double.class; // Price column
                 return String.class;
             }
 
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 0;
+                return false;
             }
         };
 
-        JTable dashboardTable = new JTable(tableModel);
+        dashboardTable = new JTable(tableModel);
+        setupOrdersTable();
+        ordersPanel.add(new JScrollPane(dashboardTable), BorderLayout.CENTER);
+
+        // Stock Alerts table panel
+        JPanel stockAlertsPanel = new JPanel(new BorderLayout());
+        stockAlertsPanel.setBorder(BorderFactory.createTitledBorder(BorderFactory.createEmptyBorder(), "Stock Alerts"));
+
+        // Stock alerts table setup
+        String[] stockColumns = {"Item ID", "Name", "Stocks(in boxes)", "Stock Level"};
+        stockAlertTableModel = new DefaultTableModel(null, stockColumns) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        stockAlertTable = new JTable(stockAlertTableModel);
+        setupStockAlertsTable();
+        stockAlertsPanel.add(new JScrollPane(stockAlertTable), BorderLayout.CENTER);
+
+        // Add panels to split pane
+        splitPane.setLeftComponent(ordersPanel);
+        splitPane.setRightComponent(stockAlertsPanel);
+
+        mainContent.add(splitPane, BorderLayout.CENTER);
+
+        // Load data for both tables
+        refreshDashboardData();
+
+        return mainContent;
+    }
+
+    private void setupOrdersTable() {
         dashboardTable.setRowHeight(40);
         dashboardTable.setShowGrid(false);
         dashboardTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -170,80 +264,157 @@ public class Dashboard extends JFrame {
         tableHeader.setBackground(Color.WHITE);
         tableHeader.setFont(new Font("Arial", Font.BOLD, 12));
 
-        dashboardTable.getColumnModel().getColumn(0).setPreferredWidth(30);
-        dashboardTable.getColumnModel().getColumn(1).setPreferredWidth(80);
-        dashboardTable.getColumnModel().getColumn(2).setPreferredWidth(100);
-        dashboardTable.getColumnModel().getColumn(3).setPreferredWidth(150);
-        dashboardTable.getColumnModel().getColumn(4).setPreferredWidth(120);
-        dashboardTable.getColumnModel().getColumn(5).setPreferredWidth(80);
-        dashboardTable.getColumnModel().getColumn(6).setPreferredWidth(50);
-        dashboardTable.getColumnModel().getColumn(7).setPreferredWidth(100);
+        // Set column widths
+        dashboardTable.getColumnModel().getColumn(0).setPreferredWidth(80); // Order ID
+        dashboardTable.getColumnModel().getColumn(1).setPreferredWidth(100); // Date
+        dashboardTable.getColumnModel().getColumn(2).setPreferredWidth(120); // Store
+        dashboardTable.getColumnModel().getColumn(3).setPreferredWidth(80); // Item ID
+        dashboardTable.getColumnModel().getColumn(4).setPreferredWidth(100); // Name
+        dashboardTable.getColumnModel().getColumn(5).setPreferredWidth(50); // Stocks
+        dashboardTable.getColumnModel().getColumn(6).setPreferredWidth(80); // Price
+        // Set left alignment for Price column
+        DefaultTableCellRenderer leftRenderer = new DefaultTableCellRenderer();
+        leftRenderer.setHorizontalAlignment(SwingConstants.LEFT);
+        dashboardTable.getColumnModel().getColumn(6).setCellRenderer(leftRenderer);
+        dashboardTable.getColumnModel().getColumn(7).setPreferredWidth(100); // Category
+        dashboardTable.getColumnModel().getColumn(8).setPreferredWidth(100); // Status
 
-        // Fetch data from the SQLite database
-        try (Connection connection = DatabaseConnection.getConnection();
-             Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("SELECT * FROM orderItems")) {
+        // Add status renderer
+        dashboardTable.getColumnModel().getColumn(8).setCellRenderer(new StatusRenderer());
+    }
 
-            // Ensure the first column contains Boolean values
-            while (resultSet.next()) {
-                Object[] row = {
-                    Boolean.FALSE, // Checkbox column must be Boolean
-                    resultSet.getString("order_id"),
-                    resultSet.getString("date"),
-                    resultSet.getString("requested_by"),
-                    resultSet.getString("sales_channel"),
-                    resultSet.getString("item"),
-                    resultSet.getInt("items"),
-                    resultSet.getString("status")
-                };
-                tableModel.addRow(row);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Error fetching data from the database: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
-        }
+    private void setupStockAlertsTable() {
+        stockAlertTable.setRowHeight(40);
+        stockAlertTable.setShowGrid(false);
+        stockAlertTable.setBackground(Color.WHITE);
+        
+        JTableHeader stockHeader = stockAlertTable.getTableHeader();
+        stockHeader.setBackground(Color.WHITE);
+        stockHeader.setFont(new Font("Arial", Font.BOLD, 12));
 
-        // Add a custom renderer for the 'Status' column
-        class StatusRenderer extends DefaultTableCellRenderer {
+        // Stock level renderer
+        class StockLevelRenderer extends DefaultTableCellRenderer {
             @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel label = (JLabel) super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, column);
                 label.setHorizontalAlignment(SwingConstants.CENTER);
 
-                if ("Completed".equals(value)) {
-                    label.setBackground(new Color(78, 188, 137));
-                    label.setForeground(Color.WHITE);
-                } else if ("Pending".equals(value)) {
-                    label.setBackground(new Color(198, 224, 118));
-                    label.setForeground(Color.BLACK);
-                } else if ("Cancelled".equals(value)) {
-                    label.setBackground(new Color(255, 99, 71)); // Tomato color for cancelled
-                    label.setForeground(Color.WHITE);
-                } else if ("Shipped".equals(value)) {
-                    label.setBackground(new Color(135, 206, 250)); // Light blue for shipped
-                    label.setForeground(Color.BLACK);
-                } else if ("Delivered".equals(value)) {
-                    label.setBackground(new Color(144, 238, 144)); // Light green for delivered
-                    label.setForeground(Color.BLACK);
-                } else if ("Processing".equals(value)) {
-                    label.setBackground(new Color(255, 215, 0)); // Gold for processing
-                    label.setForeground(Color.BLACK);
-                } else {
-                    label.setBackground(Color.WHITE);
-                    label.setForeground(Color.BLACK);
+                if (value != null) {
+                    String level = value.toString();
+                    switch (level) {
+                        case "Warning":
+                            label.setBackground(new Color(255, 215, 0)); // Gold
+                            label.setForeground(Color.BLACK);
+                            break;
+                        case "Critical":
+                            label.setBackground(new Color(255, 99, 71)); // Tomato red
+                            label.setForeground(Color.WHITE);
+                            break;
+                        case "Out of Stock":
+                            label.setBackground(new Color(139, 0, 0)); // Dark red
+                            label.setForeground(Color.WHITE);
+                            break;
+                        default:
+                            label.setBackground(Color.WHITE);
+                            label.setForeground(Color.BLACK);
+                    }
                 }
-
                 label.setOpaque(true);
                 return label;
             }
         }
 
-        dashboardTable.getColumnModel().getColumn(7).setCellRenderer(new StatusRenderer());
+        stockAlertTable.getColumnModel().getColumn(3).setCellRenderer(new StockLevelRenderer());
+    }
 
-        JScrollPane scrollPane = new JScrollPane(dashboardTable);
-        mainContent.add(scrollPane, BorderLayout.CENTER);
+    private void refreshDashboardData() {
+        refreshOrdersTable();
+        refreshStockAlertsTable();
+    }
 
-        return mainContent;
+    private void refreshStockAlertsTable() {
+        stockAlertTableModel.setRowCount(0);
+        try (Connection connection = DatabaseConnection.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM items")) {
+
+            while (resultSet.next()) {
+                // Determine stock level based on quantity
+                int quantity = resultSet.getInt("quantity");
+                String stockLevel = determineStockLevel(quantity);
+                
+                // Only add items that need attention
+                if (!stockLevel.equals("Normal")) {
+                    Object[] row = {
+                        resultSet.getString("item_id"),
+                        resultSet.getString("name"),
+                        quantity,
+                        stockLevel
+                    };
+                    stockAlertTableModel.addRow(row);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, 
+                "Error fetching stock alerts: " + e.getMessage(),
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private String determineStockLevel(int quantity) {
+        // Assuming each item has a default maximum stock of 100
+        // You might want to make this dynamic based on each item's maximum stock level
+        double percentage = (quantity / 100.0) * 100;
+        
+        if (quantity == 0) {
+            return "Out of Stock";
+        } else if (percentage <= 10) {
+            return "Critical";
+        } else if (percentage <= 30) {
+            return "Warning";
+        }
+        return "Normal";
+    }
+
+    private void refreshOrdersTable() {
+        tableModel.setRowCount(0);
+        try (Connection connection = DatabaseConnection.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM orderItems")) {
+            
+            while (resultSet.next()) {
+                String status = resultSet.getString("status");
+                if ("Completed".equalsIgnoreCase(status)) {
+                    continue; // Skip completed orders
+                }
+                Object[] row = {
+                    resultSet.getString("order_id"),
+                    resultSet.getString("date"),
+                    resultSet.getString("sales_channel"),
+                    resultSet.getString("item_id"),
+                    resultSet.getString("name"),
+                    resultSet.getInt("quantity"),
+                    resultSet.getDouble("price"),
+                    resultSet.getString("category"),
+                    status
+                };
+                tableModel.addRow(row);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, 
+                "Error refreshing orders: " + e.getMessage(),
+                "Database Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void refreshDashboard() {
+        refreshDashboardData();
     }
 
     public static void main(String[] args) {
