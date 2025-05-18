@@ -163,7 +163,7 @@ public class clientSide extends JFrame {
                 if (rs.next()) {
                     // Insert into items table (restock or add new item)
                     PreparedStatement insertItem = conn.prepareStatement(
-                        "INSERT INTO items (item_id, name, category, quantity, sales_channel, price) VALUES (?, ?, ?, ?, ?, ?) " +
+                        "INSERT INTO items (item_id, name, category, quantity, sales_channel, price, requested_by) VALUES (?, ?, ?, ?, ?, ?, ?) " +
                         "ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)");
                     insertItem.setInt(1, rs.getInt("item_id"));
                     insertItem.setString(2, rs.getString("name"));
@@ -171,6 +171,7 @@ public class clientSide extends JFrame {
                     insertItem.setInt(4, rs.getInt("quantity"));
                     insertItem.setString(5, rs.getString("sales_channel"));
                     insertItem.setDouble(6, rs.getDouble("price"));
+                    insertItem.setString(7, rs.getString("requested_by")); // Add requested_by field
                     insertItem.executeUpdate();
                     insertItem.close();
                     // Insert into completed table

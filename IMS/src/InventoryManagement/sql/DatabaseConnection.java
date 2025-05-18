@@ -31,6 +31,7 @@ public class DatabaseConnection {
             String createItemsTableSQL = "CREATE TABLE IF NOT EXISTS items (" +
                     "item_id INT PRIMARY KEY , " +
                     "name TEXT, " +
+                    "requested_by TEXT, " +
                     "category TEXT, " +
                     "quantity INTEGER, " +
                     "sales_channel TEXT, " +
@@ -50,6 +51,20 @@ public class DatabaseConnection {
                     "category TEXT, " + // New column
                     "completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);";
             statement.execute(createCompletedTableSQL);
+
+            // Create the deleted table if it does not exist
+            String createDeletedTableSQL = "CREATE TABLE IF NOT EXISTS deleted (" +
+                    "deleted_id INT PRIMARY KEY AUTO_INCREMENT, " +
+                    "item_id INT, " +
+                    "name TEXT, " +
+                    "requested_by TEXT, " +
+                    "category TEXT, " +
+                    "quantity INTEGER, " +
+                    "sales_channel TEXT, " +
+                    "deleted_by TEXT, " +
+                    "price DOUBLE, " +
+                    "deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);";
+            statement.execute(createDeletedTableSQL);
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException("Failed to initialize the database: " + e.getMessage());

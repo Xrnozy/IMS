@@ -60,7 +60,7 @@ public class loginFrame extends JFrame {
 
         // Simplify error handling for ImageIcon loading
         try {
-            ImageIcon icon = new ImageIcon(getClass().getResource("login_picture.png"));
+            ImageIcon icon = new ImageIcon(getClass().getResource("/InventoryManagement/login_picture.png"));
             if (icon.getImageLoadStatus() != MediaTracker.COMPLETE) {
                 throw new RuntimeException("Image resource not found");
             }
@@ -83,10 +83,14 @@ public class loginFrame extends JFrame {
                 String pass = new String(passwordField.getPassword());
 
                 // Ensure the Dashboard is properly displayed after successful login
-                if (user.equals("Dominic") && pass.equals("1")) {
+                if (user.equalsIgnoreCase("Dominic") && pass.equals("1")) {
                     JOptionPane.showMessageDialog(null, "Login successful!");
                     dispose(); // Close the login frame
 
+                    // Set the logged-in user in the UserSession class
+                    UserSession.setLoggedInUser(user);
+
+                    // Pass the username to the Dashboard
                     Dashboard dashboard = new Dashboard(user);
                     dashboard.setVisible(true); // Ensure the Dashboard frame is visible
 

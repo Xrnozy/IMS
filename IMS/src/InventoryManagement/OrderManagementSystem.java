@@ -74,7 +74,7 @@ public class OrderManagementSystem extends JFrame {
         });
     }
 
-    public OrderManagementSystem() {
+    public OrderManagementSystem(String user) {
         setTitle("Order Management System");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 900, 600);
@@ -156,22 +156,19 @@ public class OrderManagementSystem extends JFrame {
         topPanel.add(searchPanel, BorderLayout.CENTER);
         contentPane.add(topPanel, BorderLayout.NORTH);
 
-        String[] columnNames = {"", "Order ID", "Date", "Sales channel", "Item ID", "Name", "Stocks(in boxes)", "Price", "Category", "Status"};
+        String[] columnNames = {"Order ID", "Date", "Sales channel", "Item ID", "Name", "Stocks(in boxes)", "Price", "Category", "Status"};
         tableModel = new DefaultTableModel(null, columnNames) {
             private static final long serialVersionUID = 1L;
             @Override
             public Class<?> getColumnClass(int column) {
-                if (column == 0) {
-                    return Boolean.class;
-                }
-                if (column == 7) {
+                if (column == 6) {
                     return Double.class;
                 }
                 return String.class;
             }
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 0;
+                return false; // No editable columns
             }
         };
 
@@ -191,23 +188,27 @@ public class OrderManagementSystem extends JFrame {
         header.setBackground(Color.WHITE);
         header.setFont(new Font("Arial", Font.BOLD, 12));
 
-        ordersTable.getColumnModel().getColumn(0).setPreferredWidth(30);
-        ordersTable.getColumnModel().getColumn(1).setPreferredWidth(80);
-        ordersTable.getColumnModel().getColumn(2).setPreferredWidth(100);
-        ordersTable.getColumnModel().getColumn(3).setPreferredWidth(120);
-        ordersTable.getColumnModel().getColumn(4).setPreferredWidth(80);
-        ordersTable.getColumnModel().getColumn(5).setPreferredWidth(100);
-        ordersTable.getColumnModel().getColumn(6).setPreferredWidth(50);
-        ordersTable.getColumnModel().getColumn(7).setPreferredWidth(80);
-        // Set left alignment for Price column
-        DefaultTableCellRenderer leftRenderer = new DefaultTableCellRenderer();
-        leftRenderer.setHorizontalAlignment(SwingConstants.LEFT);
-        ordersTable.getColumnModel().getColumn(7).setCellRenderer(leftRenderer);
+        ordersTable.getColumnModel().getColumn(0).setPreferredWidth(80);
+        ordersTable.getColumnModel().getColumn(1).setPreferredWidth(100);
+        ordersTable.getColumnModel().getColumn(2).setPreferredWidth(120);
+        ordersTable.getColumnModel().getColumn(3).setPreferredWidth(80);
+        ordersTable.getColumnModel().getColumn(4).setPreferredWidth(100);
+        ordersTable.getColumnModel().getColumn(5).setPreferredWidth(50);
+        ordersTable.getColumnModel().getColumn(6).setPreferredWidth(80);
+        ordersTable.getColumnModel().getColumn(7).setPreferredWidth(100);
         ordersTable.getColumnModel().getColumn(8).setPreferredWidth(100);
-        ordersTable.getColumnModel().getColumn(9).setPreferredWidth(100);
 
-        ordersTable.getColumnModel().getColumn(9).setCellRenderer(new StatusRenderer());
-
+        ordersTable.getColumnModel().getColumn(8).setCellRenderer(new StatusRenderer());
+        for (int i = 0; i < ordersTable.getColumnCount()-1; i++) {
+            ordersTable.getColumnModel().getColumn(i).setCellRenderer(new DefaultTableCellRenderer() {
+                @Override
+                public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                    JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    label.setHorizontalAlignment(SwingConstants.CENTER);
+                    return label;
+                }
+            });
+        }
         JScrollPane scrollPane = new JScrollPane(ordersTable);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
         contentPane.add(scrollPane, BorderLayout.CENTER);
@@ -256,7 +257,6 @@ public class OrderManagementSystem extends JFrame {
              ResultSet resultSet = statement.executeQuery("SELECT * FROM orderItems")) {
             while (resultSet.next()) {
                 Object[] row = {
-                    Boolean.FALSE,
                     resultSet.getString("order_id"),
                     resultSet.getString("date"),
                     resultSet.getString("sales_channel"),
@@ -330,12 +330,12 @@ public class OrderManagementSystem extends JFrame {
         String statusFilter = comboBoxStatus.getSelectedItem() != null ? comboBoxStatus.getSelectedItem().toString() : "All Status"; // Get selected status
         List<RowFilter<Object, Object>> filters = new ArrayList<>();
         if (!"All Sales".equals(salesFilter)) {
-            RowFilter<Object, Object> salesRowFilter = RowFilter.regexFilter("^" + salesFilter + "$", 3);
+            RowFilter<Object, Object> salesRowFilter = RowFilter.regexFilter("^" + salesFilter + "$", 2);
             filters.add(salesRowFilter);
         }
         // Add status filter if not "All Status"
         if (!"All Status".equals(statusFilter)) {
-            RowFilter<Object, Object> statusRowFilter = RowFilter.regexFilter("^" + statusFilter + "$", 9);
+            RowFilter<Object, Object> statusRowFilter = RowFilter.regexFilter("^" + statusFilter + "$", 8);
             filters.add(statusRowFilter);
         }
         if (filters.isEmpty()) {
@@ -378,7 +378,7 @@ public class OrderManagementSystem extends JFrame {
 
         boolean found = false;
         for (int i = 0; i < tableModel.getRowCount(); i++) {
-            String orderId = tableModel.getValueAt(i, 1).toString().toLowerCase();
+            String orderId = tableModel.getValueAt(i, 0).toString().toLowerCase();
             if (orderId.contains(searchText)) {
                 int modelRow = i;
                 if (ordersTable.getRowSorter() != null) {
@@ -415,6 +415,8 @@ public class OrderManagementSystem extends JFrame {
         JTextField quantityField = new JTextField(5);
         JTextField priceField = new JTextField(10);
         JTextField categoryField = new JTextField(20); // New category field
+        JTextField requestedByField = new JTextField(UserSession.getLoggedInUser());
+        requestedByField.setEditable(false); // Make the requested_by field uneditable
 
         JPanel salesChannelPanel = createLabeledField("Sales channel:", salesChannelField);
         JPanel itemIdPanel = createLabeledField("Item ID:", itemIdField);
@@ -422,6 +424,7 @@ public class OrderManagementSystem extends JFrame {
         JPanel quantityPanel = createLabeledField("Quantity:", quantityField);
         JPanel pricePanel = createLabeledField("Price:", priceField);
         JPanel categoryPanel = createLabeledField("Category:", categoryField); // New panel
+        JPanel requestedByPanel = createLabeledField("Requested By:", requestedByField);
 
         addOrderDialog.add(salesChannelPanel);
         addOrderDialog.add(itemIdPanel);
@@ -429,6 +432,7 @@ public class OrderManagementSystem extends JFrame {
         addOrderDialog.add(quantityPanel);
         addOrderDialog.add(pricePanel);
         addOrderDialog.add(categoryPanel); // Add to dialog
+        addOrderDialog.add(requestedByPanel); // Add the requested_by field to the dialog
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton cancelButton = new JButton("Cancel");
@@ -443,8 +447,8 @@ public class OrderManagementSystem extends JFrame {
                 nameField.getText().trim().isEmpty() ||
                 quantityField.getText().trim().isEmpty() ||
                 priceField.getText().trim().isEmpty() ||
-                categoryField.getText().trim().isEmpty()) {
-
+                categoryField.getText().trim().isEmpty()
+            ) {
                 JOptionPane.showMessageDialog(addOrderDialog,
                         "All fields are required!",
                         "Validation Error", JOptionPane.ERROR_MESSAGE);
@@ -478,7 +482,6 @@ public class OrderManagementSystem extends JFrame {
 
             String today = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
             Object[] newRow = {
-                Boolean.FALSE,
                 null, // order_id will be auto-generated
                 today,
                 salesChannelField.getText().trim(),
@@ -486,7 +489,7 @@ public class OrderManagementSystem extends JFrame {
                 nameField.getText().trim(),
                 quantity,
                 price,
-                categoryField.getText().trim(), // Add category to row
+                categoryField.getText().trim(),
                 "Pending" // Default status
             };
 
@@ -496,8 +499,9 @@ public class OrderManagementSystem extends JFrame {
 
                 String insertSQL = String.format(
                     "INSERT INTO orderItems (date, requested_by, sales_channel, item_id, name, quantity, price, category, status) " +
-                    "VALUES ('%s','Manager Kim', '%s', %s, '%s', %d, %f, '%s', 'Pending')",
+                    "VALUES ('%s','%s', '%s', %s, '%s', %d, %f, '%s', 'Pending')",
                     today,
+                    UserSession.getLoggedInUser(), // Fetch the username dynamically
                     salesChannelField.getText().trim(),
                     itemIdField.getText().trim(),
                     nameField.getText().trim(), quantity, price,
@@ -626,6 +630,19 @@ public class OrderManagementSystem extends JFrame {
         JTextField quantityField = new JTextField("", 5); // Not autofilled
         JTextField priceField = new JTextField("", 10); // Will autofill below
         JTextField categoryField = new JTextField(category, 20);
+        JTextField requestedByField = new JTextField(20);
+        requestedByField.setEditable(false); // Make the requested_by field uneditable
+
+        // Fetch the requested_by value from InventoryOverview or ProductManagement
+        try (Connection connection = DatabaseConnection.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery("SELECT requested_by FROM items WHERE item_id = '" + productId + "'");) {
+            if (resultSet.next()) {
+                requestedByField.setText(resultSet.getString("requested_by"));
+            }
+        } catch (Exception ex) {
+            requestedByField.setText("Unknown"); // Default value if not found
+        }
 
         // Autofill price from product table if possible
         try (Connection connection = DatabaseConnection.getConnection();
@@ -650,6 +667,7 @@ public class OrderManagementSystem extends JFrame {
         JPanel quantityPanel = createLabeledField("Quantity:", quantityField);
         JPanel pricePanel = createLabeledField("Price:", priceField);
         JPanel categoryPanel = createLabeledField("Category:", categoryField);
+        JPanel requestedByPanel = createLabeledField("Requested By:", requestedByField);
 
         autofillDialog.add(salesChannelPanel);
         autofillDialog.add(itemIdPanel);
@@ -657,6 +675,7 @@ public class OrderManagementSystem extends JFrame {
         autofillDialog.add(quantityPanel);
         autofillDialog.add(pricePanel);
         autofillDialog.add(categoryPanel);
+        autofillDialog.add(requestedByPanel);
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         JButton cancelButton = new JButton("Cancel");
@@ -709,8 +728,9 @@ public class OrderManagementSystem extends JFrame {
                  Statement statement = connection.createStatement()) {
                 String insertSQL = String.format(
                     "INSERT INTO orderitems (date, requested_by, sales_channel, item_id, name, quantity, price, category, status) " +
-                    "VALUES ('%s','Manager Kim', '%s', '%s', '%s', %d, %f, '%s', 'Pending')",
+                    "VALUES ('%s', '%s', '%s', '%s', '%s', %d, %f, '%s', 'Pending')",
                     today,
+                    requestedByField.getText().trim(), // Use the dynamically fetched value
                     salesChannelField.getText().trim(),
                     itemIdField.getText().trim(),
                     nameField.getText().trim(),
@@ -733,5 +753,9 @@ public class OrderManagementSystem extends JFrame {
         autofillDialog.setVisible(true);
         // Return a dummy panel (not used, but required for compatibility)
         return new JPanel();
+    }
+
+    public OrderManagementSystem() {
+        this("Default User"); // Fallback for cases where no user is provided
     }
 }

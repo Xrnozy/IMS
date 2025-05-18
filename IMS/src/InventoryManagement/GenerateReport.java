@@ -76,15 +76,28 @@ public class GenerateReport {
             // Create filter panel
             JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
             JLabel filterLabel = new JLabel("Filter by: ");
-            String[] filterOptions = {"All Orders", "Current Orders", "Completed Orders", "All Items"};
+            
+            // Add "Deleted Items" filter option
+            String[] filterOptions = {"All Orders", "Current Orders", "Completed Orders", "All Items", "Deleted Items"};
             JComboBox<String> filterComboBox = new JComboBox<>(filterOptions);
             filterPanel.add(filterLabel);
             filterPanel.add(filterComboBox);
             filterPanel.add(new JLabel("Date:"));
             JTextField dateField = new JTextField(10);
+            dateField.setPreferredSize(new Dimension(200, 30));
             JButton calendarButton = new JButton("📅");
             filterPanel.add(dateField);
             filterPanel.add(calendarButton);
+            
+
+            // Add a search field and button to the filter panel
+            JPanel searchPanel = new JPanel(new BorderLayout());
+            JTextField searchField = new JTextField();
+            searchField.setPreferredSize(new Dimension(200, 30) );
+            JButton searchButton = new JButton("Search");
+            searchPanel.add(searchField, BorderLayout.CENTER);
+            searchPanel.add(searchButton, BorderLayout.EAST);
+            filterPanel.add(searchPanel, BorderLayout.SOUTH);
 
             // Add filter panel to the top of the content area
             JPanel topPanel = new JPanel(new BorderLayout());
@@ -131,11 +144,15 @@ public class GenerateReport {
             });
             calendarButton.addActionListener(e -> {
                 // Show a simple date picker dialog
-                String input = JOptionPane.showInputDialog(frame, "Enter date (YYYY-MM-DD):", dateField.getText());
+                String input =  dateField.getText();
                 if (input != null && !input.trim().isEmpty()) {
                     dateField.setText(input.trim());
                     String selectedFilter = (String) filterComboBox.getSelectedItem();
                     report.loadDataWithDate(selectedFilter, input.trim());
+                }
+                else {
+                    String selectedFilter = (String) filterComboBox.getSelectedItem();
+                    report.loadDataWithDate(selectedFilter, "");
                 }
             });
 
@@ -175,6 +192,52 @@ public class GenerateReport {
                     } catch (IOException ex) {
                         JOptionPane.showMessageDialog(frame, "Error exporting to CSV: " + ex.getMessage(), "Export Error", JOptionPane.ERROR_MESSAGE);
                     }
+                }
+            });
+
+            // Implement the search functionality
+            searchButton.addActionListener(e -> {
+                String searchText = searchField.getText().trim();
+                if (searchText.isEmpty()) {
+                    report.loadData("All Orders"); // Reload all data if search is cleared
+                    return;
+                }
+
+                tableModel.setRowCount(0); // Clear the table
+                try (Connection connection = DatabaseConnection.getConnection();
+                     PreparedStatement preparedStatement = connection.prepareStatement(
+                         "SELECT * FROM (" +
+                         "SELECT order_id, date, requested_by, sales_channel, item_id, name, quantity, status FROM orderItems " +
+                         "UNION ALL " +
+                         "SELECT order_id, date, requested_by, sales_channel, item_id, name, quantity, 'Completed' as status FROM completed) AS combined " +
+                         "WHERE order_id LIKE ? OR requested_by LIKE ? OR sales_channel LIKE ? OR item_id LIKE ? OR name LIKE ? OR quantity LIKE ? OR status LIKE ?")
+                ) {
+                    String queryParam = "%" + searchText + "%";
+                    for (int i = 1; i <= 7; i++) {
+                        preparedStatement.setString(i, queryParam);
+                    }
+
+                    try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                        while (resultSet.next()) {
+                            Object[] row = {
+                                resultSet.getInt("order_id"),
+                                resultSet.getString("date"),
+                                resultSet.getString("requested_by"),
+                                resultSet.getString("sales_channel"),
+                                resultSet.getInt("item_id"),
+                                resultSet.getString("name"),
+                                resultSet.getInt("quantity"),
+                                resultSet.getString("status")
+                            };
+                            tableModel.addRow(row);
+                        }
+                    }
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(null,
+                        "Error performing search: " + ex.getMessage(),
+                        "Database Error",
+                        JOptionPane.ERROR_MESSAGE);
                 }
             });
 
@@ -301,6 +364,28 @@ public class GenerateReport {
                     };
                     tableModel.addRow(row);
                 }
+                break;
+            case "Deleted Items":
+                query = "SELECT item_id, name, category, quantity, sales_channel, price, deleted_by, deleted_at FROM deleted";
+                pstmt = conn.prepareStatement(query);
+                rs = pstmt.executeQuery();
+                String[] deletedColumns = {"Item ID", "Name", "Category", "Quantity", "Store", "Price", "Deleted By", "Deleted At"};
+                tableModel.setColumnIdentifiers(deletedColumns);
+                while (rs.next()) {
+                    Object[] row = {
+                        rs.getInt("item_id"),
+                        rs.getString("name"),
+                        rs.getString("category"),
+                        rs.getInt("quantity"),
+                        rs.getString("sales_channel"),
+                        rs.getDouble("price"),
+                        rs.getString("deleted_by"),
+                        rs.getTimestamp("deleted_at")
+                    };
+                    tableModel.addRow(row);
+                }
+                rs.close();
+                pstmt.close();
                 break;
             default: // All Orders
                 // Fetch data from orderItems and completed separately to handle date formatting differently
@@ -456,6 +541,26 @@ public class GenerateReport {
                         tableModel.addRow(row);
                     }
                     break;
+                case "Deleted Items":
+                    query = "SELECT item_id, name, category, quantity, sales_channel, price, deleted_by, deleted_at FROM deleted";
+                    pstmt = conn.prepareStatement(query);
+                    rs = pstmt.executeQuery();
+                    String[] deletedColumns = {"Item ID", "Name", "Category", "Quantity", "Store", "Price", "Deleted By", "Deleted At"};
+                    tableModel.setColumnIdentifiers(deletedColumns);
+                    while (rs.next()) {
+                        Object[] row = {
+                            rs.getInt("item_id"),
+                            rs.getString("name"),
+                            rs.getString("category"),
+                            rs.getInt("quantity"),
+                            rs.getString("sales_channel"),
+                            rs.getDouble("price"),
+                            rs.getString("deleted_by"),
+                            rs.getTimestamp("deleted_at")
+                        };
+                        tableModel.addRow(row);
+                    }
+                    break;
                 default: // All Orders
                     String orderItemsQuery = "SELECT order_id, date, requested_by, sales_channel, item_id, name, quantity, status FROM orderItems WHERE 1=1" + (dateText != null && !dateText.isEmpty() ? " AND date LIKE ?" : "");
                     String[] allOrderColumns = { "Order ID", "Date", "Requested By", "Store", "Item ID", "Name", "Stocks(in boxes)", "Status"};
@@ -529,13 +634,23 @@ public class GenerateReport {
         // Create filter panel
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JLabel filterLabel = new JLabel("Filter by: ");
-        String[] filterOptions = {"All Orders", "Current Orders", "Completed Orders", "All Items"};
+        String[] filterOptions = {"All Orders", "Current Orders", "Completed Orders", "All Items", "Deleted Items"};
         filterComboBox = new JComboBox<>(filterOptions);
         filterPanel.add(filterLabel);
         filterPanel.add(filterComboBox);
         filterPanel.add(new JLabel("Date:"));
+        dateField.setPreferredSize(new Dimension(200, 30));
         filterPanel.add(dateField);
         filterPanel.add(calendarButton);
+
+        // Add a search field and button to the filter panel
+        JPanel searchPanel = new JPanel(new BorderLayout());
+        JTextField searchField = new JTextField();
+        searchField.setPreferredSize(new Dimension(200, 30));
+        JButton searchButton = new JButton("Search");
+        searchPanel.add(searchField, BorderLayout.CENTER);
+        searchPanel.add(searchButton, BorderLayout.EAST);
+        filterPanel.add(searchPanel, BorderLayout.SOUTH);
 
         // Add filter panel to the top of the content area
         JPanel topPanel = new JPanel(new BorderLayout());
@@ -574,11 +689,15 @@ tableModel = new DefaultTableModel(null, columnNames) {
             loadDataWithDate(selectedFilter, dateText);
         });
         calendarButton.addActionListener(e -> {
-            String input = JOptionPane.showInputDialog(null, "Enter date (YYYY-MM-DD):", dateField.getText());
+            String input = dateField.getText();
             if (input != null && !input.trim().isEmpty()) {
                 dateField.setText(input.trim());
                 String selectedFilter = (String) filterComboBox.getSelectedItem();
                 loadDataWithDate(selectedFilter, input.trim());
+            }
+            else {
+                String selectedFilter = (String) filterComboBox.getSelectedItem();
+                loadDataWithDate(selectedFilter, "");
             }
         });
 
@@ -618,6 +737,52 @@ tableModel = new DefaultTableModel(null, columnNames) {
                 } catch (IOException ex) {
                     JOptionPane.showMessageDialog(null, "Error exporting to CSV: " + ex.getMessage(), "Export Error", JOptionPane.ERROR_MESSAGE);
                 }
+            }
+        });
+
+        // Implement the search functionality
+        searchButton.addActionListener(e -> {
+            String searchText = searchField.getText().trim();
+            if (searchText.isEmpty()) {
+                loadData("All Orders"); // Reload all data if search is cleared
+                return;
+            }
+
+            tableModel.setRowCount(0); // Clear the table
+            try (Connection connection = DatabaseConnection.getConnection();
+                 PreparedStatement preparedStatement = connection.prepareStatement(
+                     "SELECT * FROM (" +
+                     "SELECT order_id, date, requested_by, sales_channel, item_id, name, quantity, status FROM orderItems " +
+                     "UNION ALL " +
+                     "SELECT order_id, date, requested_by, sales_channel, item_id, name, quantity, 'Completed' as status FROM completed) AS combined " +
+                     "WHERE order_id LIKE ? OR requested_by LIKE ? OR sales_channel LIKE ? OR item_id LIKE ? OR name LIKE ? OR quantity LIKE ? OR status LIKE ?")
+            ) {
+                String queryParam = "%" + searchText + "%";
+                for (int i = 1; i <= 7; i++) {
+                    preparedStatement.setString(i, queryParam);
+                }
+
+                try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        Object[] row = {
+                            resultSet.getInt("order_id"),
+                            resultSet.getString("date"),
+                            resultSet.getString("requested_by"),
+                            resultSet.getString("sales_channel"),
+                            resultSet.getInt("item_id"),
+                            resultSet.getString("name"),
+                            resultSet.getInt("quantity"),
+                            resultSet.getString("status")
+                        };
+                        tableModel.addRow(row);
+                    }
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(null, 
+                    "Error performing search: " + ex.getMessage(),
+                    "Database Error",
+                    JOptionPane.ERROR_MESSAGE);
             }
         });
 

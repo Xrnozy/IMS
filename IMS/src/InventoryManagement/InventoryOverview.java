@@ -1,6 +1,7 @@
 package InventoryManagement;
 
 import javax.swing.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableRowSorter;
@@ -163,7 +164,16 @@ public class InventoryOverview {
         categoryCombo.addActionListener(e -> applyInventoryFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim()));
         shopCombo.addActionListener(e -> applyInventoryFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim()));
         stockCombo.addActionListener(e -> applyInventoryFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim()));
-
+for (int i = 0; i < itemsTable.getColumnCount(); i++) {
+            itemsTable.getColumnModel().getColumn(i).setCellRenderer(new DefaultTableCellRenderer() {
+                @Override
+                public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                    JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    label.setHorizontalAlignment(SwingConstants.CENTER);
+                    return label;
+                }
+            });
+        }
         // Color coding for stock level (like ProductManagement)
         itemsTable.getColumnModel().getColumn(3).setCellRenderer(new javax.swing.table.DefaultTableCellRenderer() {
             @Override

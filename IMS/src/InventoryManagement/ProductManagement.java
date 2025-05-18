@@ -13,10 +13,9 @@ import InventoryManagement.sql.DatabaseConnection;
 
 public class ProductManagement {
     private DefaultTableModel tableModel;
+    private Timer refreshTimer;
+    
 
-    /**
-     * Main method to launch the Product Management application.
-     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             // Proceed to the Product Management page
@@ -92,10 +91,17 @@ public class ProductManagement {
         filterPanel.add(new JLabel("Search:"));
         filterPanel.add(searchField);
         filterPanel.add(searchButton);
+        
+        // Add buttons for adding and deleting items
+        JButton addButton = new JButton("Add Item");
+        JButton deleteButton = new JButton("Delete Selected");
+        filterPanel.add(addButton);
+        filterPanel.add(deleteButton);
+
         panel.add(filterPanel, BorderLayout.SOUTH);
 
         // --- TABLE SETUP ---
-        String[] columns = {"Product ID", "Product Name", "Category", "Store", "Stocks(in boxes)", "Added Date/Time", "Action"};
+        String[] columns = {"Product ID", "Product Name", "Category", "Store", "Stocks(in boxes)", "Price", "Requested By", "Action"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public Class<?> getColumnClass(int column) {
@@ -104,7 +110,7 @@ public class ProductManagement {
             }
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 6; // Only the "Action" column is editable
+                return column == 7; // Only the "Action" column is editable
             }
         };
 
@@ -117,6 +123,27 @@ public class ProductManagement {
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setBackground(Color.WHITE);
 
+        // Enable multiple selection in the table
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+
+        // Stop auto-update when an item is selected
+        table.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                if (table.getSelectedRowCount() > 0) {
+                    refreshTimer.stop();
+                } else {
+                    // Restart auto-update after 10 seconds of no selection
+                    Timer restartTimer = new Timer(10000, evt -> {
+                        if (table.getSelectedRowCount() == 0) {
+                            refreshTimer.start();
+                        }
+                    });
+                    restartTimer.setRepeats(false); // Ensure the timer does not repeat
+                    restartTimer.start();
+                }
+            }
+        });
+
         // Set column widths
         table.getColumnModel().getColumn(0).setPreferredWidth(80); // Product ID
         table.getColumnModel().getColumn(1).setPreferredWidth(150); // Product Name
@@ -124,8 +151,20 @@ public class ProductManagement {
         table.getColumnModel().getColumn(3).setPreferredWidth(120); // Sales Channel
         table.getColumnModel().getColumn(4).setPreferredWidth(80); // Products in Stock
         table.getColumnModel().getColumn(5).setPreferredWidth(160); // Added Date/Time
-        table.getColumnModel().getColumn(6).setPreferredWidth(150); // Action
-
+        table.getColumnModel().getColumn(6).setPreferredWidth(150); // Requested By
+        table.getColumnModel().getColumn(7).setPreferredWidth(150);
+         // Action
+        // Fixed the loop to correctly apply the renderer to all columns
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setCellRenderer(new DefaultTableCellRenderer() {
+                @Override
+                public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                    JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    label.setHorizontalAlignment(SwingConstants.CENTER);
+                    return label;
+                }
+            });
+        }
         // Color coding for stock level (like Dashboard)
         table.getColumnModel().getColumn(4).setCellRenderer(new DefaultTableCellRenderer() {
             @Override
@@ -169,8 +208,8 @@ public class ProductManagement {
                 return button;
             }
         }
-        table.getColumnModel().getColumn(6).setCellRenderer(new ModernButtonRenderer());
-        table.getColumnModel().getColumn(6).setCellEditor(new ButtonEditor(new JCheckBox()) {
+        table.getColumnModel().getColumn(7).setCellRenderer(new ModernButtonRenderer());
+        table.getColumnModel().getColumn(7).setCellEditor(new ButtonEditor(new JCheckBox()) {
             @Override
             public Object getCellEditorValue() {
                 int viewRow = table.getEditingRow();
@@ -181,6 +220,8 @@ public class ProductManagement {
                 return super.getCellEditorValue();
             }
         });
+        
+        
 
         JScrollPane scrollPane = new JScrollPane(table);
         panel.add(scrollPane, BorderLayout.CENTER);
@@ -221,46 +262,181 @@ public class ProductManagement {
         fetchItemsAndPopulateFilters(categoryCombo, shopCombo);
 
         // --- FILTER LOGIC ---
-        searchButton.addActionListener(e -> applyProductFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim()));
-        categoryCombo.addActionListener(e -> applyProductFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim()));
-        shopCombo.addActionListener(e -> applyProductFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim()));
-        stockCombo.addActionListener(e -> applyProductFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim()));
+        searchButton.addActionListener(e -> applyProductFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim(), table));
+        categoryCombo.addActionListener(e -> applyProductFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim(), table));
+        shopCombo.addActionListener(e -> applyProductFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim(), table));
+        stockCombo.addActionListener(e -> applyProductFilters(categoryCombo, shopCombo, stockCombo, searchField.getText().trim(), table));
 
+        // Add real-time refresh timer
+        refreshTimer = new Timer(5000, e -> fetchItemsAndPopulateFilters(categoryCombo, shopCombo)); // 5 seconds
+        refreshTimer.setCoalesce(true);
+        refreshTimer.start();
+
+        // Add action listener for the Add button
+        addButton.addActionListener(e -> {
+            JDialog addItemDialog = new JDialog((Frame) null, "Add New Item", true);
+            addItemDialog.setSize(400, 300);
+            addItemDialog.setLocationRelativeTo(null);
+            addItemDialog.setLayout(new GridLayout(0, 1, 10, 10));
+
+            JTextField itemIdField = new JTextField(10);
+            JTextField nameField = new JTextField(20);
+            JTextField categoryField = new JTextField(20);
+            JTextField shopField = new JTextField(20);
+            JTextField stockField = new JTextField(5);
+
+            addItemDialog.add(createLabeledField("Item ID:", itemIdField));
+            addItemDialog.add(createLabeledField("Name:", nameField));
+            addItemDialog.add(createLabeledField("Category:", categoryField));
+            addItemDialog.add(createLabeledField("Shop:", shopField));
+            addItemDialog.add(createLabeledField("Stock:", stockField));
+
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JButton cancelButton = new JButton("Cancel");
+            JButton saveButton = new JButton("Save");
+
+            cancelButton.addActionListener(evt -> addItemDialog.dispose());
+
+            saveButton.addActionListener(evt -> {
+                if (itemIdField.getText().trim().isEmpty() ||
+                    nameField.getText().trim().isEmpty() ||
+                    categoryField.getText().trim().isEmpty() ||
+                    shopField.getText().trim().isEmpty() ||
+                    stockField.getText().trim().isEmpty()) {
+
+                    JOptionPane.showMessageDialog(addItemDialog,
+                            "All fields are required!",
+                            "Validation Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                try {
+                    int stock = Integer.parseInt(stockField.getText().trim());
+                    if (stock < 0) {
+                        throw new NumberFormatException();
+                    }
+
+                    // Insert the new item into the database
+                    try (Connection connection = DatabaseConnection.getConnection();
+                         Statement statement = connection.createStatement()) {
+
+                        String insertSQL = String.format(
+                            "INSERT INTO items (item_id, name, category, sales_channel, quantity) " +
+                            "VALUES ('%s', '%s', '%s', '%s', %d)",
+                            itemIdField.getText().trim(),
+                            nameField.getText().trim(),
+                            categoryField.getText().trim(),
+                            shopField.getText().trim(),
+                            stock
+                        );
+
+                        statement.executeUpdate(insertSQL);
+                        fetchItemsAndPopulateFilters(categoryCombo, shopCombo);
+                        addItemDialog.dispose();
+                        JOptionPane.showMessageDialog(null,
+                                "Item added successfully!",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(addItemDialog,
+                            "Stock must be a non-negative number!",
+                            "Validation Error", JOptionPane.ERROR_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(addItemDialog,
+                            "Error adding item to the database: " + ex.getMessage(),
+                            "Database Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            buttonPanel.add(cancelButton);
+            buttonPanel.add(saveButton);
+            addItemDialog.add(buttonPanel);
+
+            addItemDialog.setVisible(true);
+        });
+
+        // Add action listener for the Delete button
+        deleteButton.addActionListener(e -> {
+            int[] selectedRows = table.getSelectedRows();
+            if (selectedRows.length == 0) {
+                JOptionPane.showMessageDialog(null,
+                        "No items selected for deletion!",
+                        "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(null,
+                    "Are you sure you want to delete the selected items?",
+                    "Confirm Deletion", JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                try (Connection connection = DatabaseConnection.getConnection();
+                     Statement statement = connection.createStatement()) {
+
+                    for (int row : selectedRows) {
+                        int modelRow = table.convertRowIndexToModel(row);
+                        String itemId = tableModel.getValueAt(modelRow, 0).toString();
+                        String name = tableModel.getValueAt(modelRow, 1).toString();
+                        String category = tableModel.getValueAt(modelRow, 2).toString();
+                        String shop = tableModel.getValueAt(modelRow, 3).toString();
+                        int quantity = Integer.parseInt(tableModel.getValueAt(modelRow, 4).toString());
+                        double price = Double.parseDouble(tableModel.getValueAt(modelRow, 5).toString());
+                        UserSession userSession = new UserSession();
+                        
+                        String deletedBy = userSession.getLoggedInUser(); // Fetch the current logged-in admin
+
+                        // Add the deleted item to the deleted table
+                        String insertDeletedSQL = String.format(
+                            "INSERT INTO deleted (item_id, name, category, sales_channel, quantity, price, deleted_by) " +
+                            "VALUES ('%s', '%s', '%s', '%s', %d, %f, '%s')",
+                            itemId, name, category, shop, quantity, price, deletedBy
+                        );
+                        statement.executeUpdate(insertDeletedSQL);
+
+                        // Delete the item from the items table
+                        String deleteSQL = String.format("DELETE FROM items WHERE item_id = '%s' AND sales_channel = '%s'", itemId, shop);
+                        statement.executeUpdate(deleteSQL);
+                    }
+
+                    fetchItemsAndPopulateFilters(categoryCombo, shopCombo);
+                    JOptionPane.showMessageDialog(null,
+                            "Selected items deleted successfully!",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null,
+                            "Error deleting items from the database: " + ex.getMessage(),
+                            "Database Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
         return panel;
     }
 
-    /**
-     * Loads product data from the database and populates the table.
-     */
     private void fetchItemsAndPopulateFilters(JComboBox<String> categoryCombo, JComboBox<String> shopCombo) {
+        // Clear the table model to prevent duplicate rows
         tableModel.setRowCount(0);
+
         java.util.Set<String> categories = new java.util.HashSet<>();
         java.util.Set<String> shops = new java.util.HashSet<>();
         try (Connection connection = DatabaseConnection.getConnection();
              Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery("SELECT i.*, c.completed_at FROM items i LEFT JOIN completed c ON i.item_id = c.item_id")) {
+             ResultSet resultSet = statement.executeQuery("SELECT * FROM items")) {
+
             while (resultSet.next()) {
                 String category = resultSet.getString("category");
                 String shop = resultSet.getString("sales_channel");
                 categories.add(category);
                 shops.add(shop);
-                String completedAt = resultSet.getString("completed_at");
-                String formattedDate = "";
-                if (completedAt != null && !completedAt.isEmpty()) {
-                    try {
-                        java.time.LocalDateTime dt = java.time.LocalDateTime.parse(completedAt.replace(' ', 'T'));
-                        formattedDate = dt.format(java.time.format.DateTimeFormatter.ofPattern("EEEE, dd, MMM, yyyy, h:mm a")).replace("AM", "A.M").replace("PM", "P.M");
-                    } catch (Exception ex) {
-                        formattedDate = completedAt; // fallback
-                    }
-                }
+
+                // Add the requested_by field to the row data
                 Object[] row = {
                     resultSet.getString("item_id"),
                     resultSet.getString("name"),
-                    category,
-                    shop,
+                    resultSet.getString("category"),
+                    resultSet.getString("sales_channel"),
                     resultSet.getInt("quantity"),
-                    formattedDate,
+                    resultSet.getString("price"),
+                    resultSet.getString("requested_by"), // Newly added field
                     "Click to Edit/Update"
                 };
                 tableModel.addRow(row);
@@ -269,6 +445,7 @@ public class ProductManagement {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "Error fetching items from the database: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
+
         // Populate filters
         categoryCombo.removeAllItems();
         shopCombo.removeAllItems();
@@ -278,18 +455,20 @@ public class ProductManagement {
         for (String shop : shops) shopCombo.addItem(shop);
     }
 
-    private void applyProductFilters(JComboBox<String> categoryCombo, JComboBox<String> shopCombo, JComboBox<String> stockCombo, String searchText) {
+    private void applyProductFilters(JComboBox<String> categoryCombo, JComboBox<String> shopCombo, JComboBox<String> stockCombo, String searchText, JTable table) {
         TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(tableModel);
         java.util.List<RowFilter<Object, Object>> filters = new java.util.ArrayList<>();
+
+        // Category filter
         if (categoryCombo.getSelectedItem() != null && !"All".equals(categoryCombo.getSelectedItem().toString())) {
             filters.add(RowFilter.regexFilter("^" + categoryCombo.getSelectedItem().toString() + "$", 2));
         }
+
+        // Shop filter
         if (shopCombo.getSelectedItem() != null && !"All".equals(shopCombo.getSelectedItem().toString())) {
             filters.add(RowFilter.regexFilter("^" + shopCombo.getSelectedItem().toString() + "$", 3));
         }
-        if (searchText != null && !searchText.isEmpty()) {
-            filters.add(RowFilter.regexFilter("(?i)" + searchText, 1)); // Search by Product Name
-        }
+
         // Stock level filter
         String stockLevel = stockCombo.getSelectedItem() != null ? stockCombo.getSelectedItem().toString() : "All";
         if (!"All".equals(stockLevel)) {
@@ -297,7 +476,9 @@ public class ProductManagement {
                 @Override
                 public boolean include(Entry<? extends Object, ? extends Object> entry) {
                     int quantity = 0;
-                    try { quantity = Integer.parseInt(entry.getStringValue(4)); } catch (Exception ignored) {}
+                    try {
+                        quantity = Integer.parseInt(entry.getStringValue(4));
+                    } catch (Exception ignored) {}
                     if ("Out of Stock".equals(stockLevel)) return quantity == 0;
                     if ("Warning (Low)".equals(stockLevel)) return quantity > 0 && quantity <= 10;
                     if ("Warning (Medium)".equals(stockLevel)) return quantity > 10 && quantity <= 30;
@@ -306,6 +487,13 @@ public class ProductManagement {
                 }
             });
         }
+
+        // Search filter (search across multiple columns)
+        if (searchText != null && !searchText.isEmpty()) {
+            filters.add(RowFilter.regexFilter("(?i)" + searchText, 0, 1, 2, 3, 4, 5, 6)); // Search across all columns
+        }
+
+        // Combine filters
         if (filters.isEmpty()) {
             sorter.setRowFilter(null);
         } else if (filters.size() == 1) {
@@ -313,24 +501,15 @@ public class ProductManagement {
         } else {
             sorter.setRowFilter(RowFilter.andFilter(filters));
         }
+
         // Attach sorter to table
-        JTable table = null;
-        for (Component comp : categoryCombo.getParent().getParent().getComponents()) {
-            if (comp instanceof JScrollPane) {
-                JScrollPane scrollPane = (JScrollPane) comp;
-                JViewport viewport = scrollPane.getViewport();
-                for (Component c : viewport.getComponents()) {
-                    if (c instanceof JTable) {
-                        table = (JTable) c;
-                        break;
-                    }
-                }
-            }
-        }
-        if (table != null) table.setRowSorter(sorter);
+        table.setRowSorter(sorter);
     }
 
     private void fetchItemsFromDatabase() {
+        // Clear the table model to prevent duplicate rows
+        tableModel.setRowCount(0);
+
         try (Connection connection = DatabaseConnection.getConnection();
              Statement statement = connection.createStatement();
              ResultSet resultSet = statement.executeQuery("SELECT * FROM items")) {
@@ -483,7 +662,6 @@ public class ProductManagement {
     // ButtonEditor class to handle button clicks in the table
     class ButtonEditor extends DefaultCellEditor {
         private JButton button;
-        private String label;
 
         public ButtonEditor(JCheckBox checkBox) {
             super(checkBox);
@@ -494,18 +672,19 @@ public class ProductManagement {
 
         @Override
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            button.setText(label);
+            button.setText(value == null ? "" : value.toString());
             return button;
         }
 
         @Override
         public Object getCellEditorValue() {
-            return label;
+            return button.getText();
         }
+    }
 
-        @Override
-        public boolean stopCellEditing() {
-            return super.stopCellEditing();
+    public void dispose() {
+        if (refreshTimer != null) {
+            refreshTimer.stop();
         }
     }
 }

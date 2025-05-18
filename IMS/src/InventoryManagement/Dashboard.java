@@ -16,7 +16,7 @@ public class Dashboard extends JFrame {
     private DefaultTableModel stockAlertTableModel;
     private JTable dashboardTable;
     private JTable stockAlertTable;
-
+ private String loggedInUser;
     /**
      * Custom renderer for displaying status with specific colors and alignment.
      */
@@ -55,7 +55,7 @@ public class Dashboard extends JFrame {
     }
 
     // Add a field to store the logged-in user's name
-    private String loggedInUser;
+   
 
     // Update the constructor to accept the logged-in user's name
     public Dashboard(String user) {
@@ -309,7 +309,7 @@ public class Dashboard extends JFrame {
 
         // Set column widths
         dashboardTable.getColumnModel().getColumn(0).setPreferredWidth(80); // Order ID
-        dashboardTable.getColumnModel().getColumn(1).setPreferredWidth(100); // Date
+        dashboardTable.getColumnModel().getColumn(1).setPreferredWidth(150); // Date
         dashboardTable.getColumnModel().getColumn(2).setPreferredWidth(120); // Store
         dashboardTable.getColumnModel().getColumn(3).setPreferredWidth(80); // Item ID
         dashboardTable.getColumnModel().getColumn(4).setPreferredWidth(100); // Name
@@ -324,6 +324,16 @@ public class Dashboard extends JFrame {
 
         // Add status renderer
         dashboardTable.getColumnModel().getColumn(8).setCellRenderer(new StatusRenderer());
+        for (int i = 0; i < dashboardTable.getColumnCount()-1; i++) {
+            dashboardTable.getColumnModel().getColumn(i).setCellRenderer(new DefaultTableCellRenderer() {
+                @Override
+                public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                    JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                    label.setHorizontalAlignment(SwingConstants.CENTER);
+                    return label;
+                }
+            });
+        }
     }
 
     /**
