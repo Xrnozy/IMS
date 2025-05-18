@@ -11,4 +11,14 @@ VALUES
 (14, '2025-05-10 08:30:00', 'Clerk John', 'Wholesale', 8, 'Chair', 2, 45.00, 'Furniture', 'On the Way'),
 (15, '2025-05-09 16:45:00', 'Assistant May', 'Online', 9, 'Monitor', 1, 120.00, 'Electronics', 'Pending'),
 (16, '2025-05-08 12:00:00', 'Manager Kim', 'Retail Store', 10, 'Mouse', 70, 9.99, 'Electronics', 'On the Way'),
-(17, '2025-05-07 17:10:00', 'Supervisor Lee', 'Online', 11, 'Keyboard', 50, 14.99, 'Electronics', 'Pending');
+(17, '2025-05-07 17:10:00', 'Supervisor Lee', 'Online', 11, 'Keyboard', 50, 14.99, 'Electronics', 'Pending'),
+(18, '2025-05-06 10:15:00', 'Assistant May', 'Wholesale', 12, 'Laptop Stand', 6, 22.50, 'Accessories', 'On the Way'),
+(19, '2025-05-05 11:45:00', 'Clerk John', 'Retail Store', 13, 'Whiteboard Marker', 30, 0.99, 'Stationery', 'Pending'),
+(20, '2025-05-04 13:00:00', 'Supervisor Lee', 'Online', 14, 'Desk Organizer', 10, 12.75, 'Furniture', 'On the Way'),
+(21, '2025-05-03 09:20:00', 'Manager Kim', 'Wholesale', 15, 'Ethernet Cable', 25, 3.20, 'Electronics', 'Pending'),
+(22, '2025-05-02 14:40:00', 'Assistant May', 'Online', 16, 'Sticky Notes', 50, 1.10, 'Stationery', 'Pending'),
+(23, '2025-05-01 10:05:00', 'Clerk John', 'Retail Store', 17, 'Desk Mat', 3, 15.00, 'Furniture', 'On the Way'),
+(24, '2025-04-30 15:30:00', 'Supervisor Lee', 'Online', 18, 'Cable Clips', 100, 0.25, 'Accessories', 'Pending'),
+(25, '2025-04-29 11:15:00', 'Manager Kim', 'Wholesale', 19, 'Filing Folders', 60, 0.60, 'Stationery', 'On the Way'),
+(26, '2025-04-28 16:50:00', 'Assistant May', 'Retail Store', 20, 'HDMI Cable', 12, 7.49, 'Electronics', 'Pending'),
+(27, '2025-04-27 09:35:00', 'Clerk John', 'Online', 21, 'Notebook Cooler', 4, 28.00, 'Electronics', 'On the Way');

@@ -53,48 +53,9 @@ public class ProductManagement {
             JPanel mainContent = new JPanel(new BorderLayout());
             mainContent.add(label, BorderLayout.CENTER);
 
-            // Add action listeners
-            dashboardButton.addActionListener(e -> {
-                mainContent.removeAll();
-                Dashboard dashboard = new Dashboard();
-                mainContent.add(dashboard.getContentPanel(), BorderLayout.CENTER);
-                mainContent.revalidate();
-                mainContent.repaint();
-            });
+          
 
-            productManagementButton.addActionListener(e -> {
-                mainContent.removeAll();
-                ProductManagement productManagement = new ProductManagement();
-                mainContent.add(productManagement.getContentPanel(), BorderLayout.CENTER);
-                mainContent.revalidate();
-                mainContent.repaint();
-            });
-
-            inventoryOverviewButton.addActionListener(e -> {
-                mainContent.removeAll();
-                InventoryOverview inventoryOverview = new InventoryOverview();
-                mainContent.add(inventoryOverview.getContentPanel(), BorderLayout.CENTER);
-                mainContent.revalidate();
-                mainContent.repaint();
-            });
-
-
-
-            generateReportButton.addActionListener(e -> {
-                mainContent.removeAll();
-                GenerateReport generateReport = new GenerateReport();
-                mainContent.add(generateReport.getContentPanel(), BorderLayout.CENTER);
-                mainContent.revalidate();
-                mainContent.repaint();
-            });
-
-            productsOverviewButton.addActionListener(e -> {
-                mainContent.removeAll();
-                ProductsOverview productsOverview = new ProductsOverview();
-                mainContent.add(productsOverview.getContentPanel(), BorderLayout.CENTER);
-                mainContent.revalidate();
-                mainContent.repaint();
-            });
+           
 
             frame.getContentPane().add(navBar, BorderLayout.WEST);
             frame.getContentPane().add(mainContent, BorderLayout.CENTER);
