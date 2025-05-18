@@ -28,6 +28,9 @@ public class GenerateReport {
     private JTextField dateField;
     private JButton calendarButton;
 
+    /**
+     * Main method to launch the Generate Report application.
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             // Proceed to the Generate Report page
@@ -200,6 +203,9 @@ public class GenerateReport {
         return dateStr; // Return original string if parsing fails
     }
 
+    /**
+     * Loads report data from the database and populates the table.
+     */
     // Method to load data based on filter selection
  private void loadData(String filter) {
     // Clear existing data

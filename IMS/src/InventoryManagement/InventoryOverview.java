@@ -16,13 +16,8 @@ public class InventoryOverview {
     private JTable itemsTable;
     private DefaultTableModel tableModel;
     private TableRowSorter<DefaultTableModel> sorter;
-    private JPanel mainContent; // Reference to main content panel
 
-    // New constructor to accept mainContent panel
-    public InventoryOverview(JPanel mainContent) {
-        this.mainContent = mainContent;
-    }
-
+ 
     // Default constructor for legacy usage
     public InventoryOverview() {}
 

@@ -1,6 +1,7 @@
 package InventoryManagement;
 
 import javax.swing.*;
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -12,6 +13,9 @@ public class loginFrame extends JFrame {
     private final int MAX_ATTEMPTS = 3;
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Constructor to initialize the login frame with UI components.
+     */
     public loginFrame() {
         setTitle("Inventory Management Login");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -50,17 +54,28 @@ public class loginFrame extends JFrame {
         loginForm.add(btnLogin);
 
         add(loginForm, BorderLayout.WEST);
-
-        // Image
         JPanel rightPanel = new JPanel();
         rightPanel.setBackground(Color.LIGHT_GRAY);
         rightPanel.setLayout(new BorderLayout());
 
-        JLabel placeholder = new JLabel("IMAGE PLACEHOLDER", SwingConstants.CENTER);
-        placeholder.setFont(new Font("Arial", Font.BOLD, 16));
-        rightPanel.add(placeholder, BorderLayout.CENTER);
+        // Simplify error handling for ImageIcon loading
+        try {
+            ImageIcon icon = new ImageIcon(getClass().getResource("login_picture.png"));
+            if (icon.getImageLoadStatus() != MediaTracker.COMPLETE) {
+                throw new RuntimeException("Image resource not found");
+            }
+            JLabel label = new JLabel(icon);
+            rightPanel.add(label, BorderLayout.CENTER);
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            JLabel placeholder = new JLabel("No Image Available", SwingConstants.CENTER);
+            placeholder.setFont(new Font("Arial", Font.BOLD, 16));
+            placeholder.setForeground(Color.DARK_GRAY);
+            rightPanel.add(placeholder, BorderLayout.CENTER);
+        }
 
         add(rightPanel, BorderLayout.CENTER);
+
 
         btnLogin.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -68,11 +83,11 @@ public class loginFrame extends JFrame {
                 String pass = new String(passwordField.getPassword());
 
                 // Ensure the Dashboard is properly displayed after successful login
-                if (user.equals("1") && pass.equals("1")) {
+                if (user.equals("Dominic") && pass.equals("1")) {
                     JOptionPane.showMessageDialog(null, "Login successful!");
                     dispose(); // Close the login frame
 
-                    Dashboard dashboard = new Dashboard();
+                    Dashboard dashboard = new Dashboard(user);
                     dashboard.setVisible(true); // Ensure the Dashboard frame is visible
 
                 } else {
@@ -87,6 +102,47 @@ public class loginFrame extends JFrame {
                 }
             }
         });
+    }
+
+    /**
+     * Validates the user credentials and handles login attempts.
+     */
+    private void validateLogin() {
+        String user = userField.getText();
+        String pass = new String(passwordField.getPassword());
+
+        if (user.equals("Dominic") && pass.equals("1")) {
+            JOptionPane.showMessageDialog(null, "Login successful!");
+            dispose(); // Close the login frame
+
+            Dashboard dashboard = new Dashboard(user);
+            dashboard.setVisible(true); // Ensure the Dashboard frame is visible
+
+        } else {
+            attempts++;
+            if (attempts >= MAX_ATTEMPTS) {
+                JOptionPane.showMessageDialog(null, "Login Attempts exceeded. Closing Program.");
+                System.exit(0);
+            } else {
+                showError("Invalid credentials. Attempts left: " + (MAX_ATTEMPTS - attempts));
+            }
+        }
+    }
+
+    /**
+     * Displays an error message for invalid login attempts.
+     */
+    private void showError(String message) {
+        JOptionPane.showMessageDialog(null, message);
+    }
+
+    /**
+     * Resets the login form fields.
+     */
+    private void resetForm() {
+        userField.setText("");
+        passwordField.setText("");
+        attempts = 0;
     }
 
     public static void main(String[] args) {

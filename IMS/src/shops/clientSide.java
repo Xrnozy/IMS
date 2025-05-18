@@ -75,6 +75,9 @@ public class clientSide extends JFrame {
         refreshTimer.start();
     }
 
+    /**
+     * Loads orders from the database and populates the orders table.
+     */
     private void loadOrders() {
         try {
             Connection conn = DatabaseConnection.getConnection();
@@ -122,6 +125,11 @@ public class clientSide extends JFrame {
         }
     }
 
+    /**
+     * Updates the status of a specific order in the database.
+     * @param orderId The ID of the order to update.
+     * @param newStatus The new status to set for the order.
+     */
     private void updateOrderStatus(String orderId, String newStatus) {
         try {
             if ("Completed".equalsIgnoreCase(newStatus)) {
@@ -219,17 +227,26 @@ public class clientSide extends JFrame {
         }
     }
 
+    /**
+     * Periodically checks for updates in the orders.
+     */
     private void checkForUpdates() {
         // Simply reload the table periodically to check for any changes
         loadOrders();
     }
 
+    /**
+     * Disposes of the client-side frame and releases resources.
+     */
     @Override
     public void dispose() {
         refreshTimer.stop(); // Stop the timer when closing the window
         super.dispose();
     }
 
+    /**
+     * Main method to launch the client-side application.
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             clientSide frame = new clientSide();

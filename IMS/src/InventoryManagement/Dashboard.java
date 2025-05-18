@@ -17,7 +17,9 @@ public class Dashboard extends JFrame {
     private JTable dashboardTable;
     private JTable stockAlertTable;
 
-    // Add StatusRenderer as a class member
+    /**
+     * Custom renderer for displaying status with specific colors and alignment.
+     */
     class StatusRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -52,7 +54,13 @@ public class Dashboard extends JFrame {
         }
     }
 
-    public Dashboard() {
+    // Add a field to store the logged-in user's name
+    private String loggedInUser;
+
+    // Update the constructor to accept the logged-in user's name
+    public Dashboard(String user) {
+        this.loggedInUser = user;
+
         setTitle("Inventory Management Dashboard");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800);
@@ -82,6 +90,38 @@ public class Dashboard extends JFrame {
             navBar.add(Box.createVerticalStrut(20));
             navBar.add(button);
         }
+
+        // Add user name and logout button at the bottom of the navbar
+        JPanel userPanel = new JPanel();
+        userPanel.setLayout(new BoxLayout(userPanel, BoxLayout.Y_AXIS));
+        userPanel.setBackground(new Color(45, 45, 45));
+        userPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel userNameLabel = new JLabel("Logged in as: " + loggedInUser);
+        userNameLabel.setForeground(Color.WHITE);
+        userNameLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        userNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JButton logoutButton = new JButton("Logout");
+        logoutButton.setFocusPainted(false);
+        logoutButton.setContentAreaFilled(false);
+        logoutButton.setBorderPainted(false);
+        logoutButton.setForeground(Color.WHITE);
+        logoutButton.setFont(new Font("Arial", Font.BOLD, 14));
+        logoutButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        logoutButton.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(null, "Are you sure you want to logout?", "Logout", JOptionPane.YES_NO_OPTION);
+            if (confirm == JOptionPane.YES_OPTION) {
+                dispose(); // Close the dashboard
+                new loginFrame().setVisible(true); // Redirect to login frame
+            }
+        });
+
+        userPanel.add(userNameLabel);
+        userPanel.add(Box.createVerticalStrut(10));
+        userPanel.add(logoutButton);
+        navBar.add(Box.createVerticalGlue()); // Push user panel to the bottom
+        navBar.add(userPanel);
 
         // Header
         JPanel header = new JPanel(new BorderLayout());
@@ -254,6 +294,9 @@ public class Dashboard extends JFrame {
         return mainContent;
     }
 
+    /**
+     * Sets up the orders table with appropriate configurations.
+     */
     private void setupOrdersTable() {
         dashboardTable.setRowHeight(40);
         dashboardTable.setShowGrid(false);
@@ -283,6 +326,9 @@ public class Dashboard extends JFrame {
         dashboardTable.getColumnModel().getColumn(8).setCellRenderer(new StatusRenderer());
     }
 
+    /**
+     * Sets up the stock alerts table with appropriate configurations.
+     */
     private void setupStockAlertsTable() {
         stockAlertTable.setRowHeight(40);
         stockAlertTable.setShowGrid(false);
@@ -329,11 +375,17 @@ public class Dashboard extends JFrame {
         stockAlertTable.getColumnModel().getColumn(3).setCellRenderer(new StockLevelRenderer());
     }
 
+    /**
+     * Refreshes the data displayed on the dashboard.
+     */
     private void refreshDashboardData() {
         refreshOrdersTable();
         refreshStockAlertsTable();
     }
 
+    /**
+     * Refreshes the stock alerts table with updated data.
+     */
     private void refreshStockAlertsTable() {
         stockAlertTableModel.setRowCount(0);
         try (Connection connection = DatabaseConnection.getConnection();
@@ -380,6 +432,9 @@ public class Dashboard extends JFrame {
         return "Normal";
     }
 
+    /**
+     * Refreshes the orders table with updated data.
+     */
     private void refreshOrdersTable() {
         tableModel.setRowCount(0);
         try (Connection connection = DatabaseConnection.getConnection();
@@ -413,13 +468,19 @@ public class Dashboard extends JFrame {
         }
     }
 
+    /**
+     * Refreshes the entire dashboard view.
+     */
     private void refreshDashboard() {
         refreshDashboardData();
     }
 
+    /**
+     * Main method to launch the Dashboard application.
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            Dashboard dashboard = new Dashboard();
+            Dashboard dashboard = new Dashboard("User"); // Pass a default user for testing
             dashboard.setVisible(true);
         });
     }

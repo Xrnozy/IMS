@@ -14,6 +14,9 @@ import InventoryManagement.sql.DatabaseConnection;
 public class ProductManagement {
     private DefaultTableModel tableModel;
 
+    /**
+     * Main method to launch the Product Management application.
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             // Proceed to the Product Management page
@@ -226,6 +229,9 @@ public class ProductManagement {
         return panel;
     }
 
+    /**
+     * Loads product data from the database and populates the table.
+     */
     private void fetchItemsAndPopulateFilters(JComboBox<String> categoryCombo, JComboBox<String> shopCombo) {
         tableModel.setRowCount(0);
         java.util.Set<String> categories = new java.util.HashSet<>();
