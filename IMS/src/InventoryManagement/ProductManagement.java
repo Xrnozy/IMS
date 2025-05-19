@@ -275,19 +275,24 @@ public class ProductManagement {
         // Add action listener for the Add button
         addButton.addActionListener(e -> {
             JDialog addItemDialog = new JDialog((Frame) null, "Add New Item", true);
-            addItemDialog.setSize(400, 300);
+            addItemDialog.setSize(400, 400);
             addItemDialog.setLocationRelativeTo(null);
-            addItemDialog.setLayout(new GridLayout(0, 1, 10, 10));
+            addItemDialog.setLayout(new GridLayout(0, 1, 10, 2));
 
-            JTextField itemIdField = new JTextField(10);
+            JTextField itemIdField = new JTextField(20);
             JTextField nameField = new JTextField(20);
             JTextField categoryField = new JTextField(20);
             JTextField shopField = new JTextField(20);
-            JTextField stockField = new JTextField(5);
-
+            JTextField stockField = new JTextField(10);
+            JTextField requestedByField = new JTextField(UserSession.getLoggedInUser());
+        requestedByField.setEditable(false);
+            JTextField priceField = new JTextField(10);
+            
+            addItemDialog.add(createLabeledField("Added By:", requestedByField));
             addItemDialog.add(createLabeledField("Item ID:", itemIdField));
             addItemDialog.add(createLabeledField("Name:", nameField));
             addItemDialog.add(createLabeledField("Category:", categoryField));
+            addItemDialog.add(createLabeledField("Price:", priceField));
             addItemDialog.add(createLabeledField("Shop:", shopField));
             addItemDialog.add(createLabeledField("Stock:", stockField));
 
@@ -312,6 +317,8 @@ public class ProductManagement {
 
                 try {
                     int stock = Integer.parseInt(stockField.getText().trim());
+                    double price = Double.parseDouble(priceField.getText().trim());
+                    int itemId = Integer.parseInt(itemIdField.getText().trim());
                     if (stock < 0) {
                         throw new NumberFormatException();
                     }
@@ -321,13 +328,15 @@ public class ProductManagement {
                          Statement statement = connection.createStatement()) {
 
                         String insertSQL = String.format(
-                            "INSERT INTO items (item_id, name, category, sales_channel, quantity) " +
-                            "VALUES ('%s', '%s', '%s', '%s', %d)",
-                            itemIdField.getText().trim(),
+                            "INSERT INTO items (requested_by,item_id, name, category, sales_channel, quantity, price) " +
+                            "VALUES ('%s',%d, '%s', '%s', '%s', %d, %f)",
+                            requestedByField.getText().trim(),
+                            itemId,
                             nameField.getText().trim(),
                             categoryField.getText().trim(),
                             shopField.getText().trim(),
-                            stock
+                            stock,
+                            price
                         );
 
                         statement.executeUpdate(insertSQL);

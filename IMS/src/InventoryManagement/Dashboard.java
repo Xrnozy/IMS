@@ -64,7 +64,8 @@ public class Dashboard extends JFrame {
         setTitle("Inventory Management Dashboard");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1200, 800);
-
+setExtendedState(JFrame.MAXIMIZED_BOTH);
+setUndecorated(true);
         // Sidebar navigation
         JPanel navBar = new JPanel();
         navBar.setLayout(new BoxLayout(navBar, BoxLayout.Y_AXIS));
