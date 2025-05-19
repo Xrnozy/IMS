@@ -59,7 +59,7 @@ public class Dashboard extends JFrame {
 
     // Update the constructor to accept the logged-in user's name
     public Dashboard(String user) {
-        this.loggedInUser = user;
+        this.loggedInUser = user.substring(0, 1).toUpperCase() + user.substring(1);
 
         setTitle("Inventory Management Dashboard");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -76,10 +76,10 @@ public class Dashboard extends JFrame {
         JButton inventoryOverviewButton = new JButton("Inventory Overview");
         JButton orderOverviewButton = new JButton("Order Overview");
         JButton generateReportButton = new JButton("Generate Report");
-        
+        JButton helpButton = new JButton("Help");
 
         // Style buttons
-        JButton[] buttons = {dashboardButton, productManagementButton, inventoryOverviewButton, orderOverviewButton, generateReportButton};
+        JButton[] buttons = {dashboardButton, productManagementButton, inventoryOverviewButton, orderOverviewButton, generateReportButton, helpButton};
         for (JButton button : buttons) {
             button.setFocusPainted(false);
             button.setContentAreaFilled(false);
@@ -195,7 +195,15 @@ public class Dashboard extends JFrame {
             mainContent.revalidate();
             mainContent.repaint();
         });
-
+        helpButton.addActionListener(e -> {
+            refreshTimer.stop(); // Stop updates when leaving dashboard
+            mainContent.removeAll();
+            Help help = new Help();
+            mainContent.add(help.getContentPanel(), BorderLayout.CENTER);
+            mainContent.revalidate();
+            mainContent.repaint();
+        });
+        
      
         // Initialize refresh timer (checks every 10 seconds)
         refreshTimer = new Timer(3000, e -> refreshDashboard());

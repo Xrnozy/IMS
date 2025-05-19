@@ -297,7 +297,7 @@ for (int i = 0; i < itemsTable.getColumnCount(); i++) {
             totalItemsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             leftPanel.add(totalItemsLabel);
             leftPanel.add(Box.createVerticalStrut(10));
-            JLabel totalQuantityLabel = new JLabel("Total Quantity: " + totalQuantity);
+            JLabel totalQuantityLabel = new JLabel("Total Stocks(per box): " + totalQuantity);
             totalQuantityLabel.setFont(new Font("Arial", Font.PLAIN, 16));
             totalQuantityLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
             leftPanel.add(totalQuantityLabel);
